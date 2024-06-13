@@ -1,0 +1,5 @@
+# clippy.toml
+# This file sets the configuration for Clippy lints
+
+# Set the maximum number of arguments for a function before it triggers the `too_many_arguments` lint
+too-many-arguments-threshold = 10
