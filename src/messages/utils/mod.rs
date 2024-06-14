@@ -1,21 +1,19 @@
-#![warn(unused)]
 
-use chrono::DateTime;
-
-use chrono::Utc;
-use log::{error,info};
-use native_tls::{Certificate, TlsConnector, TlsStream};
-use tungstenite::{client::IntoClientRequest, connect, http::HeaderValue, Message};
-use std::{env::var, fs::File, io::Read, net::TcpStream, thread::sleep, time::{Duration, SystemTime, UNIX_EPOCH}};
+use chrono::{DateTime, Utc};
 use jwtk::{ecdsa::{EcdsaPrivateKey, EcdsaPublicKey}, sign, HeaderAndClaims};
+use log::{info, error};
+use native_tls::{Certificate, TlsConnector, TlsStream};
+use quickfix_msg44::field_types::{OrdType, Side};
+use std::{env::var, fs::File, io::Read, net::TcpStream, thread::sleep, time::{Duration, SystemTime, UNIX_EPOCH}};
 use serde_json::{Value, Map};
+use tungstenite::{client::IntoClientRequest, connect, http::HeaderValue, Message};
 use url::Url;
 
-/// Execute WS request 
+/// Execute WS request
 ///
 /// # Panics
 ///
-/// Panics if 
+/// Panics if
 /// - api key not found in config file
 /// - api sceret not found in config file
 /// - server not found in config file
@@ -33,9 +31,11 @@ pub fn execute_ws_request(msg: String) {
     let api_key= var("PT_WS_API_KEY")
         .expect("PT_WS_API_KEY must be set in the environment or .env file");
     info!("PT_API_KEY: {:?}", api_key);
-    
-    let api_secret= var("PT_WS_API_SECRET")
+
+
+    let binding = var("PT_WS_API_SECRET")
         .expect("PT_WS_API_SECRET must be set in the environment or .env file");
+    let api_secret= binding.as_bytes();
 
     let url = match Url::parse(&ws_server) {
         Ok(url) => url,
@@ -45,12 +45,12 @@ pub fn execute_ws_request(msg: String) {
     };
 
     // generate JWT token for authenticating at server side
-    let token: String = generate_access_token(&api_key, api_secret);
+    let token: String = generate_access_token(&api_key, EcdsaPrivateKey::from_pem(api_secret).expect("error copnverting from PEM"), &url.to_string());
 
     // log first X chars to assist with debugging issues
     info!("Token generated for account {:?}\n{:?} ", api_key, token.clone().truncate(50));
 
-    // setup WS request with required Power.Trade header 
+    // setup WS request with required Power.Trade header
     let mut req = url.into_client_request().unwrap();
     req.headers_mut().append("X-Power-Trade", HeaderValue::from_str(&token).unwrap());
 
@@ -59,7 +59,7 @@ pub fn execute_ws_request(msg: String) {
 
     info!("Connecting to Power.Trade server: {}", &ws_server);
     println!("Connecting to Power.Trade server: {}", &ws_server);
- 
+
     let (mut socket, response) = connect(req).unwrap();
     info!("Response from server {:?} -> {:?}", ws_server, response.status());
 
@@ -80,7 +80,7 @@ pub fn execute_ws_request(msg: String) {
 
     match socket.write(message.clone()) {
         Ok(result) => {
-            socket.flush().expect("Error while flushing ws stream");
+            socket.flush().expect("Error while flushing WS socket");
             println!("Success writng message {} to server with result {:?} ", message.clone(), result);
         },
         Err(error) => {
@@ -89,16 +89,16 @@ pub fn execute_ws_request(msg: String) {
 
     };
 
-    // setup loop for checking received messages 
+    // setup loop for checking received messages
     // n.b. to be replaced by event-driven code
     let mut count: i32 = 0;
-    const MAX_EPOCH: i32 = 5;
-    
+    const MAX_EPOCH: i32 = 10;
+
     //
     // loop on message receive -> TODO replace by event-driven style
     //
     loop {
-        sleep( Duration::from_secs(10));
+        sleep( Duration::from_secs(2));
         let msg: Message = socket.read().expect("Error while reading WS channel");
         info!("Received msg: {}", msg);
         info!("Power.Trade websocket client sleeping [{} of {} epochs]", count, MAX_EPOCH);
@@ -108,20 +108,20 @@ pub fn execute_ws_request(msg: String) {
             info!("\nPower.Trade websocket client closing after count of {count} epochs exceeded\n");
             break;
         } else {
-            println!("Power.Trade websocket client waiting after count of {count} epochs vs max {MAX_EPOCH} ");   
+            println!("Power.Trade websocket client waiting after count of {count} epochs vs max {MAX_EPOCH} ");
         }
-        print!("Sleeping 10 secs before checking for messages again");
+        print!("Sleeping 2 secs before checking for messages again");
     }
 }
 
 /// connect
-/// 
+///
 /// used to carry out low level setup for opening TLS connection to power.trade server
 ///
 /// # Panics
 ///
 /// Panics if certificates or settings missing
-/// 
+///
 #[allow(dead_code)]
 pub fn setup_connection() -> TlsStream<TcpStream> {
 
@@ -194,7 +194,7 @@ pub fn setup_connection() -> TlsStream<TcpStream> {
 /// # Panics
 ///
 /// Panics if private key cannot be loaded as `EcdsaPrivateKey` object
-/// 
+///
 #[allow(dead_code)]
 pub fn get_pkey() -> EcdsaPrivateKey {
 
@@ -203,7 +203,7 @@ pub fn get_pkey() -> EcdsaPrivateKey {
     // >> Read private key from file and load into 'EcdsaPrivateKey' object
     //
     // Read the PEM file
-    // 
+    //
     let pem_path: String = var("PT_PEM_FILE").expect("Error while retrieving PT_PEM_FILE from .env file");
     let mut file = File::open(pem_path).expect("File name error");
     let mut pem_bytes: Vec<u8> = Vec::<u8>::new();
@@ -228,9 +228,9 @@ pub fn get_pkey() -> EcdsaPrivateKey {
     key
 }
 
-/// 
+///
 ///  `generate_jwt`
-/// 
+///
 #[allow(dead_code)]
 pub fn generate_jwt(apikey: String, now: u64, uri: String, my_key: EcdsaPrivateKey) -> String {
     let binding: HeaderAndClaims<Map<String, Value>> = HeaderAndClaims::new_dynamic();
@@ -243,11 +243,13 @@ pub fn generate_jwt(apikey: String, now: u64, uri: String, my_key: EcdsaPrivateK
         .insert("uri", uri)
         .insert("nonce", now)
         .insert("sub", apikey)
-        .header_mut()
-        .typ = Some("JWT".to_string());
+        .set_iss(String::from("app.power.trade"))
+        .header_mut().alg ="ES256".to_string().into();
 
     let token: String = match sign(&mut claims, &my_key) {
-        Ok(token) => token,
+        Ok(token) => {
+            token
+        },
         Err(error) => {
             println!("Error converting to private key: {error}");
             String::new()
@@ -257,19 +259,19 @@ pub fn generate_jwt(apikey: String, now: u64, uri: String, my_key: EcdsaPrivateK
 }
 
 #[allow(dead_code)]
-pub fn generate_access_token(api_key: &str, pkey: String) -> String {
+pub fn generate_access_token(api_key: &str, key: EcdsaPrivateKey, uri: &str) -> String {
 
     info!("Loading private key for account {}", api_key);
-    let key: EcdsaPrivateKey = match EcdsaPrivateKey::from_pem(pkey.as_bytes()) {
-        Ok(my_key) => {
-            my_key
-        }
-        Err(e) => {
-            // replace with error handling for invalid/missing private key
-            error!("Error while loading private key -> {e}");
-            panic!("Error while loading private key for account {api_key}");
-        }
-    };
+    //let key: EcdsaPrivateKey = match EcdsaPrivateKey::from_pem(pkey.as_bytes()) {
+    //    Ok(my_key) => {
+    //        my_key
+    //    }
+    //    Err(e) => {
+    //        // replace with error handling for invalid/missing private key
+    //        error!("Error while loading private key -> {e}");
+    //        panic!("Error while loading private key for account {api_key}");
+    //    }
+    //};
     let binding: HeaderAndClaims<Map<String, Value>> = HeaderAndClaims::new_dynamic();
     let mut claims: HeaderAndClaims<Map<String, Value>> = binding;
 
@@ -278,7 +280,8 @@ pub fn generate_access_token(api_key: &str, pkey: String) -> String {
         .set_exp_from_now(Duration::from_secs(18000))
         .insert("client", "api".to_owned())
         .insert("sub", api_key.to_owned())
-        .insert("nonce",  Utc::now().timestamp()) 
+        .insert("uri", uri)
+        .insert("nonce",  Utc::now().timestamp())
         .set_iss(String::from("app.power.trade"))
         .header_mut().alg ="ES256".to_string().into();
 
@@ -324,7 +327,7 @@ pub fn generate_order_id() -> u64 {
 /// # Panics
 ///
 /// Panics if ...
-/// 
+///
 #[allow(dead_code)]
 fn _generate_pubkey(mykey: EcdsaPrivateKey) -> EcdsaPublicKey {
     let newpem: String = mykey.public_key_to_pem().expect("Error generating PEM file format from string");
@@ -334,8 +337,53 @@ fn _generate_pubkey(mykey: EcdsaPrivateKey) -> EcdsaPublicKey {
 
 #[allow(dead_code)]
 pub fn generate_transact_time() -> String {
-    // Get the current date and time in UTC
-    let utc: DateTime<Utc> = Utc::now();
-    // Format the date and time as a string
-    utc.to_rfc3339()
+    let now: DateTime<Utc> = Utc::now();
+    let ts: String = now.format("%Y%m%d-%H:%M:%S%.9f").to_string();
+    ts
+}
+
+#[allow(dead_code)]
+pub fn order_type_to_char(order_type: OrdType) -> char {
+    match order_type {
+        OrdType::Market => '1',
+        OrdType::Limit => '2',
+        OrdType::Stop => '3',
+        OrdType::StopLimit => '4',
+        OrdType::WithOrWithout => '6',
+        OrdType::LimitOrBetter => '7',
+        OrdType::LimitWithOrWithout => '8',
+        OrdType::OnBasis => '9',
+        OrdType::PreviouslyQuoted => 'D',
+        OrdType::PreviouslyIndicated => 'E',
+        OrdType::ForexSwap => 'G',
+        OrdType::Funari => 'I',
+        OrdType::MarketIfTouched => 'J',
+        OrdType::MarketWithLeftOverAsLimit => 'K',
+        OrdType::PreviousFundValuationPoint => 'L',
+        OrdType::NextFundValuationPoint => 'M',
+        OrdType::Pegged => 'P',
+    }
+}
+
+
+#[allow(dead_code)]
+pub fn side_as_int(side: Side) -> u32 {
+    match side {
+        Side::Buy => 1,
+        Side::Sell => 2,
+        Side::BuyMinus => 3,
+        Side::SellPlus => 4,
+        Side::SellShort => 5,
+        Side::SellShortExempt => 6,
+        Side::Undisclosed => 7,
+        Side::Cross => 8,
+        Side::CrossShort => 9,
+        Side::CrossShortExempt => 10, // 'A' in FIX is 10 in decimal
+        Side::AsDefined => 11,        // 'B' in FIX is 11 in decimal
+        Side::Opposite => 12,         // 'C' in FIX is 12 in decimal
+        Side::Subscribe => 13,        // 'D' in FIX is 13 in decimal
+        Side::Redeem => 14,           // 'E' in FIX is 14 in decimal
+        Side::Lend => 15,             // 'F' in FIX is 15 in decimal
+        Side::Borrow => 16,           // 'G' in FIX is 16 in decimal
+    }
 }

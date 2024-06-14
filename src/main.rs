@@ -13,13 +13,14 @@ mod order;
 mod utils;
 
 use clap::{Arg, ArgAction, Command, value_parser, ValueEnum};
-use factory::{get_logon_msg, get_single_order_msg, WSMessageFactory};
+use factory::FixMessageFactory;
 use jwtk::ecdsa::EcdsaPrivateKey;
 use log::{error, info};
-use native_tls::TlsStream;
-use quickfix_msg44::field_types::{OrdType, Side};
-use rfq::rfq_publish_ws;
 use order::add_cancel_single_order;
+use native_tls::TlsStream;
+use quickfix::Message;
+use quickfix_msg44::field_types::{OrdType, Side};
+use rfq::rfq_publish_fix;
 use std::{env::var, fs::File, io::{Read, Write}, net::TcpStream, process::ExitCode, thread::sleep, time::{Duration, SystemTime, UNIX_EPOCH}};
 use simplelog::{CombinedLogger, Config, LevelFilter, WriteLogger};
 use utils::{get_pkey, setup_connection};
@@ -96,7 +97,14 @@ fn main() -> ExitCode {
     info!("Using API Key: {apikey}");
 
     //
-    // retrieve private key from file
+    // load Scenario setting from Env
+    //
+    let scenario: String =  var("PT_SCENARIO").expect("PT_SCENARIO must be set in the environment or .env file");
+    println!("Using Scenario : {scenario}");
+    info!("Using Scenario : {scenario}");
+
+    //
+    // retrieve private key from local pem file
     //
     let pkey: EcdsaPrivateKey = get_pkey();
 
@@ -105,89 +113,113 @@ fn main() -> ExitCode {
     //
     let mut tls_stream: TlsStream<TcpStream> = setup_connection();
 
+
     //
-    // Set timestamp using epoch time (secs since 01-01-1970) for JWT Claims (iat, exp,...)
-    //
-    let now: u64 = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .expect("Time went backwards!!")
-        .as_secs();
+    // Default values for new order, new rfq quotes below
+    // TODO - assign values fron .env file
+    // 
+    static SYMBOL: &str = "SOL-USD";
+    const PRICE: f64 = 388.00; 
+    const QUANTITY: f64 = 5.00; 
+    const SIDE: Side = Side::Sell;
+    const ORDERTYPE: OrdType = OrdType::Limit;
+    let seqnum: u32 = 2; // Sequence is LOGON + 1 means we expect to run single sceniario here. extend seqnum logic if needed later
 
     //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     //
-    // Create order which is a SELL at high price so will not be executed, shows adding & removing orders
+    // Create order which is a SELL at high price which will not be executed
     // 
-    //let single_leg_order = get_single_order_msg(String::from("121312312"), String::from("SOL_USD"), Side::Buy, 12312.2312, 888.0, OrdType::Limit, String::from("Some text")).expect("Error creating message");
-    let single_leg_order: quickfix::Message = get_single_order_msg(apikey.clone(), now, 488.00, 1.00,String::from("SOL-USD"), 1,  1, 2).unwrap();
-    println!("Created new single order using MsgFactory: {single_leg_order:?}");
+    // - generate timestamp using epoch time (secs since 01-01-1970) for JWT Claims (iat, exp,...)
+    //
+    let now: u64 = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards!!").as_secs();
+    let order_msg: Message = FixMessageFactory::new_single_leg_order(apikey.clone(), now, PRICE, QUANTITY, SYMBOL.to_string(), SIDE, ORDERTYPE, seqnum).unwrap();
+    println!("Created new single leg order msg using FixMsgFactory  {order_msg:?}");
 
+    //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     // 
     // create RFQ subscription msg for demonstrationg RFQ quote flow 
     //
-    let rfq = WSMessageFactory::new_rfq_request( now.to_string(), String::from("SOL-USD"), Side::Buy, 1.50, 88.50, OrdType::Limit, apikey.clone());
-    info!("Created new RFQ subscription from WS MsgFactory: {:?}", rfq);
+    // array of topica(symbols) to subscribe for RFQ updates
+    let topics: Vec<String> = ["ETH-USD", "SOL-USD", "DOGE"]
+        .iter()
+        .map(|&s| s.to_string())
+        .collect();
 
+    let rfq_sub_msg: Message = FixMessageFactory::new_rfq_sub(topics).unwrap().into();
+    println!("Created new RFQ subscribe msg using FixMsgFactory: {:?}", rfq_sub_msg);
+
+
+    //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    // 
+    // Create RFQ quote msg for creating new RFQ quote for a symbol
+    //
+    let rfq_quote_msg: Message = FixMessageFactory::new_rfq_quote(&now.to_string(), &apikey, SYMBOL.to_string(), SIDE, QUANTITY,ORDERTYPE, seqnum).unwrap();
+    println!("Created new RFQ publish msg using FixMsgFactory: {:?}", rfq_quote_msg);
+
+    //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     //
     // Create Fix LOGON Message using environment settings
     //
-    let msg: quickfix::Message = match get_logon_msg(apikey.clone(), now, pkey) {
-        Ok(msg) => msg,
+    let logon_msg: Message = match FixMessageFactory::new_logon( apikey.clone(), pkey) {
+        Ok(logon_msg) => {
+            info!("Created new Fix Logon msg : {:?}", logon_msg);
+            logon_msg
+        },
         Err(error) => {
-            error!("Error creating LOGON message -> {:?}", error);
+            error!("Error creating Fix Logon message -> {:?}", error);
             return ExitCode::from(1); // no way to continue - abort app
         }
     };
 
-    //
-    // Send Fix LOGON message to power.trade server via TLS channel 
-    //
-    match tls_stream.write(
-        msg.to_fix_string()
-            .expect("Error sending LOGON msg")
-            .as_bytes(),
-    ) {
-        Ok(byte_count) => {
-            println!("Sent {byte_count} bytes ... ");
-        }
-        Err(error) => {
-            println!("Error while sending msg {error} ");
-        }
+    // Send Fix LOGON message to server via TLS channel 
+    match tls_stream.write( logon_msg.to_fix_string().expect("Error converting Logon Msg to Bytes").as_bytes()) {
+        Ok(byte_count) => { println!("Sent {byte_count} bytes"); }
+        Err(error) => { println!("Error while sending msg {error} "); }
     };
 
-    sleep(Duration::from_secs(2)); // TODO - remove this sleep after testing done
-
-    // Buffer to hold the response
+    // setup buffer to hold the logon msg response
     println!("Checking response to LOGON msg ...");
     let mut buffer = [0; 1024];
 
-    let scenario: String =  var("PT_SCENARIO").expect("PT_SCENARIO must be set in the environment or .env file");
-    println!("Using Scenario : {scenario}");
-    info!("Using Scenario : {scenario}");
     //
-    // Read response from server to LOGON request msg
+    // Read response to LOGON request msg
     //
     match tls_stream.read(&mut buffer) {
         Ok(bytes_read) => {
+            println!("Message received with {bytes_read} bytes");
             if bytes_read > 0 {
 
-                // Print response as a string
                 let response = String::from_utf8_lossy(&buffer[..bytes_read]);
-                println!("Received response: {response}");
+                info!("Received Logon response: {response}");
+                println!("Received Logon response: {response}");
 
+                //
+                // Received logon response, now execute next step for sample client functionality
+                //
                 match scenario.as_str() {
-                    "RFQ" => {
-                        //execute_ws_request(rfq);
-                        rfq_publish_ws(rfq);
-                    }, 
                     "ORDER" => {
-                        add_cancel_single_order(tls_stream, single_leg_order);
+                        // publish new limit order & listen for response msg
+                        add_cancel_single_order(tls_stream, order_msg);
+                    },
+                    "RFQ" => {
+                        // publish RFQ quote request & listen for response msg
+                        rfq_publish_fix(tls_stream, rfq_quote_msg);
+                    }, 
+                    "LISTEN" => {
+                        //
+                        // publish RFQ subscription request
+                        // TODO - retrieve set of coins to listen for (.env)
+                        // TODO - implement and test subcribe/listen/unsubscribe 
+                        //
+                        rfq_publish_fix(tls_stream, rfq_sub_msg);
                     },
                     _ => {
                         panic!("Error - no valid scenario defined to execute");
                     }
                 }
             } else {
-                println!("No response received from server");
+                info!("No response received from server for Logon request");
+                println!("No response received from server for Logon request");
             }
         }
         Err(e) => {
@@ -195,9 +227,8 @@ fn main() -> ExitCode {
             panic!("Failed to read from stream: {e}"); // panic since nothing else can be done here
         }
     }
-    println!("Sleeping for 20 seconds ...");
-    sleep(Duration::from_secs(20));
-
+    println!("Sleeping for 40 seconds to allow inspecting data, reviewing UI updates. To be removed ...");
+    sleep(Duration::from_secs(40));
     ExitCode::from(0) // return 0 as SUCCESS status to calling exvironment
 }
 

@@ -3,6 +3,7 @@ use quickfix::Message;
 use std::{io::{Read, Write}, net::TcpStream, thread::sleep, time::Duration};
 
 pub fn add_cancel_single_order(mut tls_stream: TlsStream<TcpStream>, order: Message ) {
+
     println!("Executing Add/Cancel Single Order scenario");
 
     // senf the new order
@@ -29,6 +30,10 @@ pub fn add_cancel_single_order(mut tls_stream: TlsStream<TcpStream>, order: Mess
         let byte_count = tls_stream.read(&mut buffer2).expect("Error reading bytes from new Order responses"); 
         let resp: String = String::from_utf8(buffer2[..byte_count].to_vec()).expect("Error loading new Order responses message");
         println!("SingleOrder::received response: {resp:?}\n");
+
+        //
+        // Cancel message to be added here using FixMsgFactory:new_cancel_order_single
+        // - for now order will be cancelled when login session ends
 
         // sleep for Y seconds between order sending
         sleep(Duration::from_secs(1));

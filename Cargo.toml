@@ -22,6 +22,7 @@ clap = { version = "4.0", features = ["derive"] }
 tungstenite = { version = "0.20.1", features = ["native-tls"] }
 http = "1.1.0"
 url = "2.2.0"
+io = "0.0.2"
 
 [package.metadata.clippy]
 # Disable the needless_return lint globally
