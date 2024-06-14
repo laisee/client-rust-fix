@@ -11,7 +11,7 @@ use crate::utils::{side_as_int, order_type_to_char, generate_access_token, gener
 #[allow(unused)]
 pub struct WSMessageFactory;
 impl WSMessageFactory {
-    pub fn _new_rfq_request(cl_ord_id: ClOrdID, symbol: Symbol, side: Side , order_qty: OrderQty, price: Price, order_type: OrdType ,text: String ) -> String {
+    pub fn _new_rfq_request(cl_ord_id: ClOrdID, symbol: Symbol, side: Side , order_qty: OrderQty, price: Price, order_type: OrdType ,text: &str ) -> String {
         info!("Cient Order Id -> {}", cl_ord_id);
         info!("Side -> {:?}", side);
         info!("Symbol -> {:?}", symbol);
@@ -65,6 +65,8 @@ impl FixMessageFactory {
         let begin_string: String = "FIX.4.4".to_string();  // BeginString    [8]
         let message_type: char = 'D';                      // MsgType       [35]
         let client_order_id = now;                    // ClOrdId       [11]
+        let order_type: char = order_type_to_char(order_type);     // OrdType          [40]
+        let side_int:u32 = side_as_int(side);                      // Side             [54]
         let ts: String = generate_transact_time();         // SendingTime   [52]
         let target_comp_id = "PT-OE";                // TargetCompID  [56] - use config value TODO
         let time_in_force: u32 = 1;                        // TimeInForce   [59]
@@ -79,7 +81,7 @@ impl FixMessageFactory {
         // msg.append_pair(59,   TimeInForce) -> TimeInforce ["1" = "GTC"]
         // msg.append_pair(60,   format_epoch_time(now))
 
-        let template: String = format!("8={}\x0135={}\x0134={}\x0111={}\x0138={}\x0140={:?}\x0144={}\x0149={}\x0152={}\x0154={:?}\x0155={}\x0156={}\x0159={}\x0160={}\x01", begin_string, message_type, seqnum, client_order_id, quantity, order_type, price, apikey, ts, side, symbol, target_comp_id, time_in_force, ts);
+        let template: String = format!("8={begin_string}\x0135={message_type}\x0134={seqnum}\x0111={client_order_id}\x0138={quantity}\x0140={order_type}\x0144={price}\x0149={apikey}\x0152={ts}\x0154={side_int}\x0155={symbol}\x0156={target_comp_id}\x0159={time_in_force}\x0160={ts}\x01");
         info!("Single Order Msg as string: {}", template.to_string());
 
         // 
@@ -112,7 +114,7 @@ impl FixMessageFactory {
         
         let jwt: String = generate_access_token(&apikey.clone(), my_key, &uri);
             
-        let template: String = format!("8={}\x0135={}\x0134={}\x0149={}\x0156={}\x0152={}\x0198={}\x01108={}\x01141={}\x01554={}\x01", begin_string, message_type, seqnum, apikey, target_comp_id, ts, encrypt_method, heartbeat, reset_seqnum, jwt);
+        let template: String = format!("8={begin_string}\x0135={message_type}\x0134={seqnum}\x0149={apikey}\x0156={target_comp_id}\x0152={ts}\x0198={encrypt_method}\x01108={heartbeat}\x01141={reset_seqnum}\x01554={jwt}\x01");
         info!("LOGON Msg as string: {:?}", template.to_string());
         
         // two fields are generated when Message is created
@@ -146,10 +148,10 @@ impl FixMessageFactory {
                 let _ = ord.set_text(text);
                 let _ = ord.set_time_in_force(TimeInForce::GoodTillCancel);
                 order = Some(ord);
-                println!("Created new order {:?}", order );
+                println!("Created new order {order:?}");
             }
-            Err(err) => {
-                println!("Failed on creating new order {:?}", err);
+            Err(error) => {
+                println!("Failed on creating new order {error:?}");
             }
         }
         Ok(order.expect("Expected a valid New Single Order but received 'None' value"))
@@ -164,12 +166,12 @@ impl FixMessageFactory {
         match result {
             Ok(mut order) => {
                 let _ = order.set_text(text);
-                println!("Created cancel order {:?}", order );
+                println!("Created cancel order {order:?}");
                 Ok(order)
             }
-            Err(err) => {
-                println!("Failed on creating cancel order {:?}", err);
-                Err(err)
+            Err(error) => {
+                println!("Failed on creating cancel order {error:?}");
+                Err(error)
             }
         }       
     }
@@ -196,7 +198,7 @@ impl FixMessageFactory {
         let transact_time: String = generate_transact_time();      // ts               [60]
         let symbols_sfx: String = "none".to_string();              // SymbolSfx        [65]
 
-        let template: String = format!("8={}\x0135={}\x0134={}\x0111={}\x0138={}\x0140={}\x0149={}\x0152={}\x0154={:?}\x0155={}\x0156={}\x0159={}\x0160={}\x0165={}\x01", begin_string, message_type, seqnum, client_order_id, order_quantity, order_type, sender_comp_id, sending_time, side_int, symbol, target_comp_id, time_in_force, transact_time, symbols_sfx);
+        let template: String = format!("8={begin_string}\x0135={message_type}\x0134={seqnum}\x0111={client_order_id}\x0138={order_quantity}\x0140={order_type}\x0149={sender_comp_id}\x0152={sending_time}\x0154={side_int}\x0155={symbol}\x0156={target_comp_id}\x0159={time_in_force}\x0160={transact_time}\x0165={symbols_sfx}\x01");
         info!("RFQ Msg as string: {}", template.to_string());
 
         // 
@@ -227,10 +229,10 @@ impl FixMessageFactory {
         match msg {
             Ok(ref mut msg) => {
                 let _ = msg.set_subscription_request_type(SubscriptionRequestType::Snapshot);
-                println!("Created new request {:?}", msg);
+                println!("Created new request {msg:?}");
             }
             Err(error) => {
-                println!("Failed on creating new order {:?}", error);
+                println!("Failed on creating new order {error:?}");
                 return Err(error);
             }
         }

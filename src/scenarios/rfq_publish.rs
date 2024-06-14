@@ -13,8 +13,8 @@ pub fn rfq_publish_fix(mut tls_stream: TlsStream<TcpStream>, rfq: Message) {
     tls_stream.get_ref().set_read_timeout(Some(Duration::new(5, 0))).expect("Failed to set read timeout");
 
     match tls_stream.write(rfq.to_fix_string() .expect("Error while sending RFQ listen message") .as_bytes()) { 
-        Ok(byte_count) => println!("Sent {:?} with {:?} bytes ... ", rfq.to_fix_string(), byte_count),
-        Err(error) => println!("Error while sending order msg {:?} ", error)
+        Ok(byte_count) => println!("Sent {rfq:?} with {byte_count:?} bytes ... "),
+        Err(error) => println!("Error while sending order msg {error:?} ")
     };
 
     let mut count: u32 = 0;
@@ -33,7 +33,7 @@ pub fn rfq_publish_fix(mut tls_stream: TlsStream<TcpStream>, rfq: Message) {
                 if byte_count > 0 {
                     // Process the read bytes
                     let response = String::from_utf8_lossy(&buffer2[..byte_count]);
-                    println!("RFQ-Publish  {} bytes: {:?}", byte_count, response);
+                    println!("RFQ-Publish  {byte_count} bytes: {response:?}");
                 }
             }
             Err(ref e) if e.kind() == ErrorKind::WouldBlock => {
@@ -48,7 +48,7 @@ pub fn rfq_publish_fix(mut tls_stream: TlsStream<TcpStream>, rfq: Message) {
             }
             Err(e) => {
                 // Handle other errors
-                eprintln!("RFQ-Publish - error reading from stream: {:?}", e);
+                eprintln!("RFQ-Publish - error reading from stream: {e:?}");
                 continue;
             }
         }
@@ -58,5 +58,5 @@ pub fn rfq_publish_fix(mut tls_stream: TlsStream<TcpStream>, rfq: Message) {
 
 pub fn _rfq_publish_ws(rfq: String) {
     info!("Sending RFQ -> {rfq}");
-    execute_ws_request(rfq);
+    execute_ws_request(&rfq);
 }

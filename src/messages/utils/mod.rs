@@ -18,7 +18,7 @@ use url::Url;
 /// - api sceret not found in config file
 /// - server not found in config file
 #[allow(dead_code)]
-pub fn execute_ws_request(msg: String) {
+pub fn execute_ws_request(msg: &str) {
 
     assert!(!msg.is_empty(), "Error - message string is empty");
 
@@ -76,7 +76,7 @@ pub fn execute_ws_request(msg: String) {
     //};
 
     // send RFQ subscription message
-    let message: Message = Message::text(&msg);
+    let message: Message = Message::text(msg.to_string());
 
     match socket.write(message.clone()) {
         Ok(result) => {

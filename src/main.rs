@@ -146,7 +146,7 @@ fn main() -> ExitCode {
         .collect();
 
     let rfq_sub_msg: Message = FixMessageFactory::new_rfq_sub(topics).unwrap().into();
-    println!("Created new RFQ subscribe msg using FixMsgFactory: {:?}", rfq_sub_msg);
+    println!("Created new RFQ subscribe msg using FixMsgFactory: {rfq_sub_msg:?}");
 
 
     //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -154,7 +154,7 @@ fn main() -> ExitCode {
     // Create RFQ quote msg for creating new RFQ quote for a symbol
     //
     let rfq_quote_msg: Message = FixMessageFactory::new_rfq_quote(&now.to_string(), &apikey, SYMBOL.to_string(), SIDE, QUANTITY,ORDERTYPE, seqnum).unwrap();
-    println!("Created new RFQ publish msg using FixMsgFactory: {:?}", rfq_quote_msg);
+    println!("Created new RFQ publish msg using FixMsgFactory: {rfq_quote_msg:?}");
 
     //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     //
@@ -166,7 +166,7 @@ fn main() -> ExitCode {
             logon_msg
         },
         Err(error) => {
-            error!("Error creating Fix Logon message -> {:?}", error);
+            error!("Error creating Fix Logon message -> {error:?}");
             return ExitCode::from(1); // no way to continue - abort app
         }
     };
