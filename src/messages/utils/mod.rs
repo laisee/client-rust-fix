@@ -45,7 +45,7 @@ pub fn execute_ws_request(msg: String) {
     };
 
     // generate JWT token for authenticating at server side
-    let token: String = generate_access_token(&api_key, EcdsaPrivateKey::from_pem(api_secret).expect("error copnverting from PEM"), &url.to_string());
+    let token: String = generate_access_token(&api_key, EcdsaPrivateKey::from_pem(api_secret).expect("error copnverting from PEM"), url.as_ref());
 
     // log first X chars to assist with debugging issues
     info!("Token generated for account {:?}\n{:?} ", api_key, token.clone().truncate(50));

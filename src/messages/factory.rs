@@ -1,4 +1,3 @@
-#![warn(unused)]
 #![allow(clippy::needless_return)]
 
 use quickfix_msg44::{field_types::{ClOrdID, OrdType, OrderQty, Price, Side, SubscriptionRequestType, Symbol, TimeInForce, TransactTime}, NewOrderMultileg, NewOrderSingle, OrderCancelRequest, RFQRequest};
@@ -9,9 +8,10 @@ use std::env::var;
 use crate::utils::{side_as_int, order_type_to_char, generate_access_token, generate_order_id, generate_transact_time};
 
 #[allow(dead_code)]
+#[allow(unused)]
 pub struct WSMessageFactory;
 impl WSMessageFactory {
-    pub fn new_rfq_request(cl_ord_id: ClOrdID, symbol: Symbol, side: Side , order_qty: OrderQty, price: Price, order_type: OrdType ,text: String ) -> String {
+    pub fn _new_rfq_request(cl_ord_id: ClOrdID, symbol: Symbol, side: Side , order_qty: OrderQty, price: Price, order_type: OrdType ,text: String ) -> String {
         info!("Cient Order Id -> {}", cl_ord_id);
         info!("Side -> {:?}", side);
         info!("Symbol -> {:?}", symbol);
@@ -221,7 +221,7 @@ impl FixMessageFactory {
     /// 
     pub fn new_rfq_sub(topics: Vec<String>) -> Result<RFQRequest, QuickFixError> {
 
-        assert!(topics.len() > 0);
+        assert!(!topics.is_empty());
         let rfq_req_id = generate_order_id().to_string();
         let mut msg: Result<RFQRequest, QuickFixError> = RFQRequest::try_new( rfq_req_id.clone());
         match msg {
