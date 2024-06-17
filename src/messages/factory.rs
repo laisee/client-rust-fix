@@ -45,6 +45,13 @@ impl WSMessageFactory {
     }
 }
 
+///
+/// `FixMsgFactory`
+/// 
+/// Panic if: 
+/// apikey missing or empty
+/// `now` is 0 or missing or empty
+/// `cl_order_id` is missing or empty
 pub struct FixMessageFactory;
 impl FixMessageFactory {
 
@@ -131,7 +138,7 @@ impl FixMessageFactory {
         }
         msg
     }
-    pub fn _new_single_leg_order(cl_ord_id: ClOrdID, symbol: Symbol, side: Side , order_qty: OrderQty, price: Price, order_type: OrdType ,text: String ) -> Result<NewOrderSingle, QuickFixError> {
+    pub fn _new_single_leg_order_deprecated(cl_ord_id: ClOrdID, symbol: Symbol, side: Side , order_qty: OrderQty, price: Price, order_type: OrdType ,text: String ) -> Result<NewOrderSingle, QuickFixError> {
 
         let mut order: Option<NewOrderSingle> = None;
         let result: Result<NewOrderSingle, QuickFixError> = NewOrderSingle::try_new(

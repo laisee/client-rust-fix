@@ -140,7 +140,7 @@ pub fn setup_connection() -> TlsStream<TcpStream> {
    // Load the public certificate from a file
    //
    let pubkey_path = var("PT_PUBKEY_FILE").expect("Error while retrieving PT_PUBKEY_FILE from .env file"); //"private_cert.pem"; // TODO - take from env
-   println!("PUBKEY Path: {pubkey_path}");
+   info!("PUBKEY Path: {pubkey_path}");
    let mut cert_file: File = File::open(pubkey_path).expect("Unable to open certificate file"); // TODO - from .env
    let mut cert_data: Vec<u8> = Vec::new();
    cert_file
@@ -175,7 +175,7 @@ pub fn setup_connection() -> TlsStream<TcpStream> {
    // Connect to power.trade server over TCP
    //
    let stream = TcpStream::connect(&server).expect("Failed to connect to server");
-   println!("TLS Stream connecting to -> {server}");
+   info!("TLS Stream connecting to -> {server}");
 
    //
    // Setup TLS channel on top of TCP connection
@@ -183,7 +183,7 @@ pub fn setup_connection() -> TlsStream<TcpStream> {
    let tls_stream = connector
        .connect(&server, stream)
        .expect("Failed to establish TLS session");
-   println!("TLS Stream -> {tls_stream:?}");
+   info!("TLS Stream -> {tls_stream:?}");
 
    tls_stream
 

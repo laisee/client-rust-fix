@@ -3,8 +3,11 @@
 #[path = "messages/factory.rs"]
 mod factory;
 
+#[path = "scenarios/rfq_listen.rs"]
+mod listen;
+
 #[path = "scenarios/rfq_publish.rs"]
-mod rfq;
+mod publish;
 
 #[path = "scenarios/single_order_add_cancel.rs"]
 mod order;
@@ -20,7 +23,8 @@ use order::add_cancel_single_order;
 use native_tls::TlsStream;
 use quickfix::Message;
 use quickfix_msg44::field_types::{OrdType, Side};
-use rfq::rfq_publish_fix;
+use listen::rfq_listen_fix;
+use publish::rfq_publish_fix;
 use std::{env::var, fs::File, io::{Read, Write}, net::TcpStream, process::ExitCode, thread::sleep, time::{Duration, SystemTime, UNIX_EPOCH}};
 use simplelog::{CombinedLogger, Config, LevelFilter, WriteLogger};
 use utils::{get_pkey, setup_connection};
@@ -120,7 +124,7 @@ fn main() -> ExitCode {
     // 
     static SYMBOL: &str = "SOL-USD";
     const PRICE: f64 = 388.00; 
-    const QUANTITY: f64 = 5.00; 
+    const QUANTITY: f64 = 2.00; 
     const SIDE: Side = Side::Sell;
     const ORDERTYPE: OrdType = OrdType::Limit;
     let seqnum: u32 = 2; // Sequence is LOGON + 1 means we expect to run single sceniario here. extend seqnum logic if needed later
@@ -145,16 +149,19 @@ fn main() -> ExitCode {
         .map(|&s| s.to_string())
         .collect();
 
+    //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    // 
+    // Create RFQ subscribe msg for listening to published RFQ quotes 
+    //
     let rfq_sub_msg: Message = FixMessageFactory::new_rfq_sub(topics).unwrap().into();
-    println!("Created new RFQ subscribe msg using FixMsgFactory: {rfq_sub_msg:?}");
-
+    println!("Created new RFQ Subscribe msg using FixMsgFactory: {rfq_sub_msg:?}");
 
     //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     // 
     // Create RFQ quote msg for creating new RFQ quote for a symbol
     //
     let rfq_quote_msg: Message = FixMessageFactory::new_rfq_quote(&now.to_string(), &apikey, SYMBOL.to_string(), SIDE, QUANTITY,ORDERTYPE, seqnum).unwrap();
-    println!("Created new RFQ publish msg using FixMsgFactory: {rfq_quote_msg:?}");
+    println!("Created new RFQ Quote msg using FixMsgFactory: {rfq_quote_msg:?}");
 
     //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     //
@@ -208,13 +215,13 @@ fn main() -> ExitCode {
                     "LISTEN" => {
                         //
                         // publish RFQ subscription request
-                        // TODO - retrieve set of coins to listen for (.env)
+                        // TODO - retrieve set of coins to listen for (source -> .env)
                         // TODO - implement and test subcribe/listen/unsubscribe 
                         //
-                        rfq_publish_fix(tls_stream, rfq_sub_msg);
+                        rfq_listen_fix(tls_stream, rfq_sub_msg);
                     },
                     _ => {
-                        panic!("Error - no valid scenario defined to execute");
+                        panic!("Error - no valid scenario defined to execute - was {scenario}");
                     }
                 }
             } else {
