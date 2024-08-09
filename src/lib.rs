@@ -4,13 +4,19 @@ pub mod common {
     use std::sync::{Arc, Mutex};
     use log::info;
     pub fn increment_seqnum(seqnum: Arc<Mutex<u32>> ) -> u32 {
-        match seqnum.lock().unwrap() {
-            mut num => {
-                *num += 1;
-                info!("Seqnum incremented to {}", *num);
-                *num
-            }
+        let mut num = seqnum.lock().unwrap();
+        {
+            *num += 1;
+            info!("Seqnum incremented to {}", *num);
+            *num
         }
+       //match seqnum.lock().unwrap() {
+        //    mut num => {
+        //        *num += 1;
+        //        info!("Seqnum incremented to {}", *num);
+        //        *num
+        //    }
+        //}
     }
 }
 
