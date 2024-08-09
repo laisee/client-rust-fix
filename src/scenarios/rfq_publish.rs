@@ -9,9 +9,6 @@ pub fn rfq_publish_fix(mut tls_stream: TlsStream<TcpStream>, rfq: Message) {
     info!("Executing RFQ publish scenario");
     println!("Executing RFQ publish scenario");
 
-    // set 5 second timerout on reads
-    tls_stream.get_ref().set_read_timeout(Some(Duration::new(5, 0))).expect("Failed to set read timeout");
-
     match tls_stream.write(rfq.to_fix_string() .expect("Error while sending RFQ listen message").as_bytes()) { 
         Ok(byte_count) => println!("Sent {rfq:?} with {byte_count:?} bytes ... "),
         Err(error) => println!("Error while sending order msg {error:?} ")
@@ -33,7 +30,7 @@ pub fn rfq_publish_fix(mut tls_stream: TlsStream<TcpStream>, rfq: Message) {
             Ok(byte_count) => {
                 if byte_count > 0 {
                     // Process the read bytes
-                    let response = String::from_utf8_lossy(&buffer2[..byte_count]);
+                    let response = String::from_utf8_lossy(&buffer2[..byte_count]).replace("\x01","|");
                     println!("RFQ-Publish  {byte_count} bytes: {response:?}");
                 }
             }

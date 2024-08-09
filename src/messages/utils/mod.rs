@@ -1,5 +1,4 @@
-
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use jwtk::{ecdsa::{EcdsaPrivateKey, EcdsaPublicKey}, sign, HeaderAndClaims};
 use log::{info, error};
 use native_tls::{Certificate, TlsConnector, TlsStream};
@@ -8,6 +7,24 @@ use std::{env::var, fs::File, io::Read, net::TcpStream, thread::sleep, time::{Du
 use serde_json::{Value, Map};
 use tungstenite::{client::IntoClientRequest, connect, http::HeaderValue, Message};
 use url::Url;
+
+#[allow(dead_code)]
+pub fn get_now() -> u64 {
+     // current datetime as seconds since 1970, used in scenarios executed below
+    SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards!!").as_secs()
+}
+#[allow(dead_code)]
+pub fn get_attr(msg: &str, mytag: &str) -> String {
+    for field in msg.replace('\x01', "|").split('|') {
+        let mut parts: std::str::SplitN<char> = field.splitn(2, '=');
+        if let (Some(tag), Some(value)) = (parts.next(), parts.next()) {
+            if tag == mytag {
+                return value.to_string();
+            }
+        }
+    }
+    String::from("")
+}
 
 /// Execute WS request
 ///
@@ -81,10 +98,10 @@ pub fn execute_ws_request(msg: &str) {
     match socket.write(message.clone()) {
         Ok(result) => {
             socket.flush().expect("Error while flushing WS socket");
-            println!("Success writng message {} to server with result {:?} ", message.clone(), result);
+            info!("Success writng message {} to server with result {:?} ", message.clone(), result);
         },
         Err(error) => {
-            println!("Error {:?} while writng message {} to server ", error,  message.clone());
+            error!("Error {:?} while writng message {} to server ", error,  message.clone());
         }
 
     };
@@ -108,7 +125,7 @@ pub fn execute_ws_request(msg: &str) {
             info!("\nPower.Trade websocket client closing after count of {count} epochs exceeded\n");
             break;
         } else {
-            println!("Power.Trade websocket client waiting after count of {count} epochs vs max {MAX_EPOCH} ");
+            info!("Power.Trade websocket client waiting after count of {count} epochs vs max {MAX_EPOCH} ");
         }
         print!("Sleeping 2 secs before checking for messages again");
     }
@@ -123,7 +140,7 @@ pub fn execute_ws_request(msg: &str) {
 /// Panics if certificates or settings missing
 ///
 #[allow(dead_code)]
-pub fn setup_connection() -> TlsStream<TcpStream> {
+pub fn setup_tls_connection() -> TlsStream<TcpStream> {
 
     //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    //
@@ -169,7 +186,7 @@ pub fn setup_connection() -> TlsStream<TcpStream> {
        .add_root_certificate(cert)
        .build()
        .expect("Failed to build TLS connector");
-   println!("TLS Connection -> {connector:?}");
+   info!("TLS Connection -> {connector:?}");
 
    //
    // Connect to power.trade server over TCP
@@ -183,6 +200,10 @@ pub fn setup_connection() -> TlsStream<TcpStream> {
    let tls_stream = connector
        .connect(&server, stream)
        .expect("Failed to establish TLS session");
+
+   // set 5 second timerout on reads
+   tls_stream.get_ref().set_read_timeout(Some(Duration::new(5, 0))).expect("Failed to set read timeout");
+
    info!("TLS Stream -> {tls_stream:?}");
 
    tls_stream
@@ -251,8 +272,8 @@ pub fn generate_jwt(apikey: String, now: u64, uri: String, my_key: EcdsaPrivateK
             token
         },
         Err(error) => {
-            println!("Error converting to private key: {error}");
-            String::new()
+            error!("Error converting to private key: {error}");
+            return String::new();
         }
     };
     token
@@ -308,7 +329,7 @@ pub fn process_key(pem: &str) -> Result<EcdsaPrivateKey, String> {
             Ok(key)
         }
         Err(e) => {
-            println!("Error converting to private key: {e}");
+            error!("Error converting to private key: {e}");
             Err(format!("Error converting to private key: {e}"))
         }
     }
@@ -336,10 +357,16 @@ fn _generate_pubkey(mykey: EcdsaPrivateKey) -> EcdsaPublicKey {
 }
 
 #[allow(dead_code)]
-pub fn generate_transact_time() -> String {
+pub fn generate_ts(add_hours: i64) -> String {
+    use chrono::prelude::*;
+    use chrono::Duration;
     let now: DateTime<Utc> = Utc::now();
-    let ts: String = now.format("%Y%m%d-%H:%M:%S%.9f").to_string();
-    ts
+    let future_time = if add_hours != 0 {
+        now + Duration::hours(add_hours)
+    } else {
+        now
+    };
+    future_time.format("%Y%m%d-%H:%M:%S%.9f").to_string()
 }
 
 #[allow(dead_code)]

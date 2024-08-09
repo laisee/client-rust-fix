@@ -1,6 +1,18 @@
 // src/lib.rs
-#[path = "messages/utils/mod.rs"]
-mod util;
+
+pub mod common {
+    use std::sync::{Arc, Mutex};
+    use log::info;
+    pub fn increment_seqnum(seqnum: Arc<Mutex<u32>> ) -> u32 {
+        match seqnum.lock().unwrap() {
+            mut num => {
+                *num += 1;
+                info!("Seqnum incremented to {}", *num);
+                *num
+            }
+        }
+    }
+}
 
 #[cfg(test)]
 mod fix_msg_tests {
@@ -27,11 +39,7 @@ mod fix_msg_tests {
 #[cfg(test)]
 mod fix_msg_enum_tests {
 
-    use super::*;
     use quickfix_msg44::field_types::{OrdType, Side, TimeInForce};
-
-    #[allow(unused_imports)]
-    use util::{side_as_int, order_type_to_char};
 
     #[test]
     fn test_time_in_force_day() {

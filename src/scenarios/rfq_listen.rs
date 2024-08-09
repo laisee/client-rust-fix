@@ -8,9 +8,6 @@ pub fn rfq_listen_fix(mut tls_stream: TlsStream<TcpStream>, rfq: Message) {
     info!("Executing RFQ listen scenario");
     println!("Executing RFQ listen scenario");
 
-    // set 5 second timerout on reads
-    tls_stream.get_ref().set_read_timeout(Some(Duration::new(5, 0))).expect("Failed to set read timeout");
-
     match tls_stream.write(rfq.to_fix_string() .expect("Error while sending RFQ listen message").as_bytes()) { 
         Ok(byte_count) => println!("Sent {rfq:?} with {byte_count:?} bytes ... "),
         Err(error) => println!("Error while sending order msg {error:?} ")

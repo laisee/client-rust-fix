@@ -12,6 +12,7 @@ Cargo.lock
 
 # ignore dotenv config files
 .env
+.env.dev
 .env.test
 .env.prod
 
