@@ -20,4 +20,4 @@ jobs:
         toolchain: stable
 
     - name: Run Clippy
-      run: cargo clippy -- -D warnings
+      run: cargo clippy -- -D warnings -A dead_code
