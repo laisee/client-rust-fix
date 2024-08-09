@@ -370,7 +370,7 @@ pub fn generate_ts(add_hours: i64) -> String {
 }
 
 #[allow(dead_code)]
-pub fn order_type_to_char(order_type: OrdType) -> char {
+pub(crate) fn order_type_to_char(order_type: OrdType) -> char {
     match order_type {
         OrdType::Market => '1',
         OrdType::Limit => '2',

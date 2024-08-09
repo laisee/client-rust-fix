@@ -41,17 +41,17 @@ pub(crate) fn exec() -> Result<(bool, String), Box<dyn Error>> {
     // Setuo env with associated config from dotenv file
     match pt_env {
         Environment::Development => {
-            println!("Environment is set to DEV");
+            info!("Environment is set to DEV");
             // Load environment variables from development version of .env file
             dotenv::from_filename(".env.dev").expect("Failed to load env values from file '.env.dev'");
         },
         Environment::Test => {
-            println!("Environment is set to TEST");
+            info!("Environment is set to TEST");
             // Load environment variables from test version of .env file
             dotenv::from_filename(".env.test").expect("Failed to load env values from file '.env.test'");
         },
         Environment::Production => {
-            println!("Environment is set to PROD");
+            info!("Environment is set to PROD");
             // Load environment variables from production version of .env file
             dotenv::from_filename(".env.prod").expect("Failed to load env values from file '.env.prod'");
         },
