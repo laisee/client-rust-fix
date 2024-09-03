@@ -19,8 +19,13 @@ See [here](https://power-trade.github.io/api-docs-source/fix_order_entry.html#_i
 Power.Trade API home page can be found [here](https://support.power.trade/api/api-overview)
 
 ## Getting Started
-1. Install Rust on device where client will be running. See [https://www.rust-lang.org/tools/install](here) for instructions
-2. Check that Rustup has installed and configured 1.80 as the default version by typing following command in a console/terminal window
+1. Install Rust on device where client will be running. 
+
+   See [https://www.rust-lang.org/tools/install](here) for instructions on installation using Rustup.
+   
+   See [https://forge.rust-lang.org/infra/other-installation-methods.html](here) for other installation methods.
+
+3. Check that Rustup has installed and configured 1.80 as the default version by typing following command in a console/terminal window
   ```
   rustc --version
   ```
@@ -30,11 +35,13 @@ Power.Trade API home page can be found [here](https://support.power.trade/api/ap
    cp .env.example .env.test
    ```
 4. Open the new .env file (".env.test") and update the settings for Test API env
-5. Save the file and run client on Test environment. 
-   Client runtime environment is set on command line as a parameter for the --env flag with value of 'development', 'test', 'production' 
+   
+6. Save the file and run client on Test environment.
+    
+   n.b. Rust client runtime environment is set on command line as a parameter for the --env flag with value of 'development', 'test', 'production' 
    ```
    cargo run -- --env test
    ```
-6. Review console output and log files (see 'app.log' in same folder) to view client activity
+8. Review console output and log files (see 'app.log' in same folder) to view client activity
    
    
