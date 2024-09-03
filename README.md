@@ -1,4 +1,5 @@
-# client-rust-fix
+# **client-rust-fix**
+## Rust Client for trading on [https://power.trade](power.trade) crypto exchange
 
 [![Rust](https://github.com/laisee/client-rust-fix/actions/workflows/rust.yml/badge.svg)](https://github.com/laisee/client-rust-fix/actions/workflows/rust.yml) 
 [![CI](https://github.com/laisee/client-rust-fix/actions/workflows/ci.yml/badge.svg)](https://github.com/laisee/client-rust-fix/actions/workflows/ci.yml) 
@@ -16,3 +17,24 @@ See [here](https://power-trade.github.io/api-docs-source/fix_order_entry.html) f
 See [here](https://power-trade.github.io/api-docs-source/fix_order_entry.html#_introduction) for Power.Trade Drop Copy Fix message specification(Fix MsgType='8')
 
 Power.Trade API home page can be found [here](https://support.power.trade/api/api-overview)
+
+## Getting Started
+1. Install Rust on device where client will be running. See [https://www.rust-lang.org/tools/install](here) for instructions
+2. Check that Rustup has installed and configured 1.80 as the default version by typing following command in a console/terminal window
+  ```
+  rustc --version
+  ```
+    the version displayed should be: "rustc 1.80.0 (default)"
+3. Copy the sample env file(".env.example") to create a file for Test environment
+   ```
+   cp .env.example .env.test
+   ```
+4. Open the new .env file (".env.test") and update the settings for Test API env
+5. Save the file and run client on Test environment. 
+   Client runtime environment is set on command line as a parameter for the --env flag with value of 'development', 'test', 'production' 
+   ```
+   cargo run -- --env test
+   ```
+6. Review console output and log files (see 'app.log' in same folder) to view client activity
+   
+   
