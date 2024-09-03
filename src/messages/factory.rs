@@ -11,7 +11,8 @@ use crate::utils::{get_now, side_as_int, order_type_to_char, generate_access_tok
 #[allow(unused)]
 pub struct WSMessageFactory;
 impl WSMessageFactory {
-    pub fn _new_rfq_request(cl_ord_id: ClOrdID, symbol: Symbol, side: Side , order_qty: OrderQty, price: Price, order_type: OrdType ,text: &str ) -> String {
+    #[allow(dead_code)]
+    pub fn new_rfq_request(cl_ord_id: ClOrdID, symbol: Symbol, side: Side , order_qty: OrderQty, price: Price, order_type: OrdType ,text: &str ) -> String {
         info!("Cient Order Id -> {}", cl_ord_id);
         info!("Side -> {:?}", side);
         info!("Symbol -> {:?}", symbol);
@@ -164,7 +165,8 @@ impl FixMessageFactory {
         }
         msg
     }
-    pub fn _new_cancel_order_single(orig_cl_ord_id: ClOrdID, cl_ord_id: &str, side: Side, symbol: String, text: String ) -> Result<OrderCancelRequest, QuickFixError> {
+    #[allow(dead_code)]
+    pub fn new_cancel_order_single(orig_cl_ord_id: ClOrdID, cl_ord_id: &str, side: Side, symbol: String, text: String ) -> Result<OrderCancelRequest, QuickFixError> {
         let result: Result<OrderCancelRequest, QuickFixError> = OrderCancelRequest::try_new(
             orig_cl_ord_id.to_string(),
             cl_ord_id.to_string(),
@@ -188,9 +190,12 @@ impl FixMessageFactory {
             }
         }       
     }
-    pub fn _new_order_multi(cl_ord_id: ClOrdID, side: Side, transact_time: TransactTime,  order_type: OrdType) -> Result<NewOrderMultileg, QuickFixError> {
+    #[allow(dead_code)]
+    pub fn new_order_multi(cl_ord_id: ClOrdID, side: Side, transact_time: TransactTime,  order_type: OrdType) -> Result<NewOrderMultileg, QuickFixError> {
         NewOrderMultileg::try_new(cl_ord_id, side, transact_time, order_type)
     }
+
+    #[allow(dead_code)]
     pub fn new_rfq_quote(apikey: &str, symbol: Symbol, side: Side, order_qty: OrderQty, order_type: OrdType, seqnum: u32) -> Result<Message, QuickFixError> {
         //
         // RFQ fields based on FIX 4.4 specification for new single order(MsgType='D') with 
@@ -234,6 +239,7 @@ impl FixMessageFactory {
     /// `new_rfq_sub`
     /// TODO - add subscribe topic list to parameters
     /// 
+    #[allow(dead_code)]
     pub fn new_rfq_sub(topics: Vec<String>) -> Result<RFQRequest, QuickFixError> {
         assert!(!topics.is_empty());
         let rfq_req_id = generate_order_id().to_string();
@@ -250,6 +256,7 @@ impl FixMessageFactory {
         }
         msg
     }
+    #[allow(dead_code)]
     pub fn heartbeat(apikey: String, seqnum: u32, target_comp_id: &str) -> Result<Message, QuickFixError> {
 
         let begin_string: String = "FIX.4.4".to_string();  // BeginString    [8]

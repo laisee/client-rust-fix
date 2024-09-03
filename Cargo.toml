@@ -19,7 +19,7 @@ simplelog = "0.12.2"
 auditable = "0.2.0"
 rustfmt = "0.10.0"
 clap = { version = "4.0", features = ["derive"] }
-tungstenite = { version = "0.24.0", features = ["native-tls"] }
+tungstenite = { version = "0.20.1", features = ["native-tls"] }
 http = "1.1.0"
 url = "2.2.0"
 io = "0.0.2"

@@ -3,6 +3,7 @@ use native_tls::TlsStream;
 use quickfix::Message;
 use std::{env::var, io::{ErrorKind, Read, Write}, net::TcpStream, thread::sleep, time::Duration};
 
+#[allow(dead_code)]
 pub fn rfq_listen_fix(mut tls_stream: TlsStream<TcpStream>, rfq: Message) {
 
     info!("Executing RFQ listen scenario");
