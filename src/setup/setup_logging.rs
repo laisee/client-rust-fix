@@ -3,6 +3,7 @@ use std::{error::Error, fs::File};
 use log::LevelFilter;
 use simplelog::{CombinedLogger, Config, WriteLogger};
 
+#[allow(dead_code)]
 pub(crate) fn exec() ->  Result<bool, Box<dyn Error>> {
     //
     // Setup logging

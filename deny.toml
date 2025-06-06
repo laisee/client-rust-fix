@@ -1,0 +1,13 @@
+[advisories]
+# Fail if any advisory has a severity of "medium" or higher
+severity-threshold = "medium"
+
+# If you're not publishing a library, set this to false
+# to ignore advisories about crate metadata like missing license
+ignore-source = false
+
+# List of specific advisories you want to ignore (e.g., temporarily)
+ignore = []
+
+# Optional: Only allow advisories from crates.io (recommended)
+db-path = "~/.cargo/advisory-db"

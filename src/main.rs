@@ -1,8 +1,4 @@
 #[allow(clippy::too_many_lines)]
-
-#[path = "messages/factory.rs"]
-mod factory;
-
 #[path = "scenarios/rfq_listen.rs"]
 mod listen;
 
@@ -12,14 +8,11 @@ mod publish;
 #[path = "scenarios/single_leg_order.rs"]
 mod single_leg_order;
 
-#[path = "messages/utils/mod.rs"]
-mod utils;
-
+pub (crate) mod messages;   
 pub(crate) mod setup;
 
 use clap::ValueEnum;
-use client_rust_fix::common::increment_seqnum;
-use factory::FixMessageFactory;
+use crate::messages::factory::FixMessageFactory;
 use log::{error,info};
 use native_tls::TlsStream;
 use publish::rfq_publish_fix;
@@ -28,7 +21,7 @@ use quickfix_msg44::field_types::{OrdType, Side};
 use setup::{setup_env, setup_heartbeat, setup_keys, setup_logging, setup_rfq, setup_session, setup_trading};
 use single_leg_order::{send_single_order, send_multiple_orders};
 use std::{io::Write, net::TcpStream, option::Option::Some, process::ExitCode, thread::sleep, time::Duration};
-use utils::setup_tls_connection;
+use crate::messages::utils::{increment_seqnum, setup_tls_connection};
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 enum Environment {
@@ -55,12 +48,6 @@ pub fn main() -> ExitCode {
         return ExitCode::from(FAILURE);
     }
 
-    // setup heartbeat process used for maintaining Fix connection
-    if !setup_heartbeat::exec().unwrap() {
-        println!("Error while setting up 'heartbeat'");
-        return ExitCode::from(FAILURE);
-    }
-
     // read and initialize keys used for Fix session and power.trade trading
     let (status, apikey, pkey ) = setup_keys::exec().unwrap();
     if !status {
@@ -79,6 +66,12 @@ pub fn main() -> ExitCode {
         println!("Seqnum initialized with value {:?}", seqnum.lock().unwrap() );
     }
 
+    // setup heartbeat process used for maintaining Fix connection
+    if !setup_heartbeat::exec(seqnum.clone()).unwrap() {
+        println!("Error while setting up 'heartbeat'");
+        return ExitCode::from(FAILURE);
+    }
+
     // setup common trading settings and defaults
     if !setup_trading::exec().unwrap() {
         println!("Error while setting up 'trading'");
@@ -91,8 +84,8 @@ pub fn main() -> ExitCode {
     match scenario.as_str()  {
         "ORDER" => {
             // TODO - take these values from setup_trading call
-            const PRICE: f64 = 388.00; 
-            const QUANTITY: f64 = 2.00; 
+            const PRICE: f64 = 888.00; 
+            const QUANTITY: f64 = 0.20; 
             const SIDE: Side = Side::Sell;
             const ORDERTYPE: OrdType = OrdType::Limit;
             let symbol: String = "SOL-USD".to_string();
@@ -112,9 +105,9 @@ pub fn main() -> ExitCode {
             //
             // publish new set of limit single leg orders, listen for response msg and cancel (if cancel_order == 'true')
             //
-            const PRICE: f64 = 388.00; 
-            const QUANTITY: f64 = 2.00; 
-            const SIDE: Side = Side::Sell;
+            const PRICE: f64 = 88.00; 
+            const QUANTITY: f64 = 1.00; 
+            const SIDE: Side = Side::Buy;
             const ORDERTYPE: OrdType = OrdType::Limit;
             let symbol: String = "SOL-USD".to_string();
 

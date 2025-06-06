@@ -2,8 +2,9 @@ use jwtk::ecdsa::EcdsaPrivateKey;
 use log::info;
 use std::{env::var, error::Error};
 
-use crate::utils::get_pkey;
+use crate::messages::utils::get_pkey;
 
+#[allow(dead_code)]
 pub(crate) fn exec() ->  Result<(bool, String, EcdsaPrivateKey), Box<dyn Error>> {
     //
     //

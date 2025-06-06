@@ -3,8 +3,8 @@ use native_tls::TlsStream;
 use quickfix::{FieldMap, Message};
 use quickfix_msg44::field_types::Side;
 use std::{io::{ErrorKind, Read, Write}, net::TcpStream, option::Option::Some, thread::sleep, time::Duration};
-use crate::factory::FixMessageFactory;
-use crate::utils::get_attr;
+use crate::messages::factory::FixMessageFactory;
+use crate::messages::utils::get_attr;
 
 pub fn send_single_order(apikey: &str,  tls_stream: &mut TlsStream<TcpStream>, order: Message, seqnum: u32, is_cancel_order: Option<bool> ) {
 

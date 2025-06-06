@@ -1,11 +1,14 @@
+
 use jwtk::ecdsa::EcdsaPrivateKey;
 use log::{info, error};
 use native_tls::TlsStream;
 use std::{error::Error, io::{Read, Write}, net::TcpStream, sync::{Arc, Mutex}};
 use quickfix::Message;
-use crate::{factory::FixMessageFactory, utils::get_attr, increment_seqnum};
+use crate::messages::factory::FixMessageFactory;
+use crate::messages::utils::{get_attr, increment_seqnum};
 
 #[allow(clippy::type_complexity)]
+#[allow(dead_code)]
 pub(crate) fn exec(apikey: &str, pkey: EcdsaPrivateKey, tls_stream: &mut TlsStream<TcpStream>) ->  Result<(bool, Arc<Mutex<u32>>), Box<dyn Error>> {
 
     let mut status: bool = false;

@@ -342,13 +342,19 @@ pub fn generate_order_id() -> u64 {
     since_the_epoch.as_secs()
 }
 
-/// `generate_pubkey`
-///  - given a private key (ES256) will generate the public key
+/// Generates a public key from the provided private key
+///
+/// # Arguments
+///
+/// * `mykey` - An ECDSA private key to derive the public key from
+///
+/// # Returns
+///
+/// The corresponding ECDSA public key
 ///
 /// # Panics
 ///
-/// Panics if ...
-///
+/// Panics if the public key cannot be generated from the private key
 #[allow(dead_code)]
 fn _generate_pubkey(mykey: EcdsaPrivateKey) -> EcdsaPublicKey {
     let newpem: String = mykey.public_key_to_pem().expect("Error generating PEM file format from string");
@@ -370,7 +376,7 @@ pub fn generate_ts(add_hours: i64) -> String {
 }
 
 #[allow(dead_code)]
-pub(crate) fn order_type_to_char(order_type: OrdType) -> char {
+pub fn order_type_to_char(order_type: OrdType) -> char {
     match order_type {
         OrdType::Market => '1',
         OrdType::Limit => '2',
@@ -414,6 +420,14 @@ pub fn side_as_int(side: Side) -> u32 {
     }
 }
 
+
+#[allow(dead_code)]
+pub fn increment_seqnum(seqnum: std::sync::Arc<std::sync::Mutex<u32>>) -> u32 {
+    let mut num = seqnum.lock().unwrap();
+    *num += 1;
+    *num
+}
+
 #[cfg(test)]
 mod fix_msg_tests {
 
@@ -440,7 +454,7 @@ mod fix_msg_tests {
 mod fix_msg_enum_tests {
 
     use quickfix_msg44::field_types::{OrdType, Side, TimeInForce};
-    use crate::utils::{order_type_to_char, side_as_int};
+    use crate::messages::utils::{order_type_to_char, side_as_int};
 
     #[test]
     fn test_time_in_force_day() {

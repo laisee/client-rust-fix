@@ -4,9 +4,9 @@ use quickfix_msg44::field_types::{OrdType, Side};
 use std::error::Error;
 use quickfix::Message;
 
-use crate::factory::FixMessageFactory;
+use crate::messages::factory::FixMessageFactory;
 
-#[allow(clippy::type_complexity)]
+#[allow(dead_code)]
 pub(crate) fn exec(apikey: &str, seqnum_latest: u32) -> Result<(bool,Message), Box<dyn Error>> {
 
     // Default values for new rfq quote below

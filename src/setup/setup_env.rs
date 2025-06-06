@@ -10,6 +10,7 @@ enum Environment {
     Production
 }
 
+#[allow(dead_code)]
 pub(crate) fn exec() -> Result<(bool, String), Box<dyn Error>> {
     println!("Initializing env ...");
 

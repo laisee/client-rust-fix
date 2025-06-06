@@ -1,4 +1,4 @@
-use crate::utils::execute_ws_request;
+use crate::messages::utils::execute_ws_request;
 use log::info;
 use native_tls::TlsStream;
 use quickfix::Message;

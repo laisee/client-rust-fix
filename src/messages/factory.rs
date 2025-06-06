@@ -1,11 +1,9 @@
-#![allow(clippy::needless_return)]
-
 use quickfix_msg44::{field_types::{ClOrdID, OrdType, OrderQty, Price, Side, SubscriptionRequestType, Symbol, TransactTime}, NewOrderMultileg, OrderCancelRequest, RFQRequest};
 use log::{error, info};
 use quickfix::{Message, QuickFixError};
 use jwtk::ecdsa::EcdsaPrivateKey;
 use std::{env::var, time::{SystemTime, UNIX_EPOCH}};
-use crate::utils::{get_now, side_as_int, order_type_to_char, generate_access_token, generate_order_id, generate_ts};
+use crate::messages::utils::{get_now, side_as_int, order_type_to_char, generate_access_token, generate_order_id, generate_ts};
 
 #[allow(dead_code)]
 #[allow(unused)]
@@ -68,6 +66,7 @@ impl FixMessageFactory {
     /// - symbol is not a traded coin or instrument @ power.trade
     /// - order type is not valid (Limit or Market)
     /// - seqnum is less than 2 (1 is seqnum for login message)
+    #[allow(dead_code)]
     pub fn new_single_leg_order( apikey: String, price: f64, quantity: f64, symbol: Symbol,side: Side, order_type: OrdType, seqnum: u32) -> Result<Message, QuickFixError> {
 
         let begin_string: String = "FIX.4.4".to_string();  // BeginString    [8]
@@ -108,6 +107,7 @@ impl FixMessageFactory {
         }
         msg
     }
+    #[allow(dead_code)]
     pub fn new_logon( apikey: String, my_key: EcdsaPrivateKey,) -> Result<Message, QuickFixError> {
 
         let begin_string: String = "FIX.4.4".to_string();  // BeginString    [8]
@@ -139,6 +139,7 @@ impl FixMessageFactory {
         }
         msg
     }
+    #[allow(dead_code)]
     pub fn cancel_order(apikey: &str, orig_cl_order_id: &str, exch_order_id: &str, side: Side, symbol: &str, seqnum: u32, text: String) -> Result<Message, QuickFixError> {
        
         let begin_string: String = "FIX.4.4".to_string();  // BeginString    [8]
@@ -216,7 +217,7 @@ impl FixMessageFactory {
         let symbols_sfx: String = "none".to_string();              // SymbolSfx        [65]
     
         let template: String = format!("8={begin_string}\x0135={message_type}\x0134={seqnum}\x0111={client_order_id}\x0138={order_quantity}\x0140={order_type}\x0149={sender_comp_id}\x0152={sending_time}\x0154={side_int}\x0155={symbol}\x0156={target_comp_id}\x0159={time_in_force}\x0160={transact_time}\x0165={symbols_sfx}\x01");
-        info!("RFQ Msg as string: {}", template.to_string());
+        info!("RFQ Msg as string: {}", template);
     
         // 
         // two fields are generated when QuickFix Message is generated from string
@@ -265,7 +266,7 @@ impl FixMessageFactory {
 
         // 8=FIX.4.2|9=49|35=0|34=4|49=SENDER_COMP_ID|56=TARGET_COMP_ID|52=20230624-14:30:00.000|10=128|
         let template: String = format!("8={begin_string}\x0135={message_type}\x0134={seqnum}\x0149={apikey}\x0152={ts}\x0156={target_comp_id}\x01");
-        info!("Heartbeat Msg as string: {}", template.to_string());
+        info!("Heartbeat Msg as string: {}", template);
 
         // 
         // two fields are generated when Message is created
