@@ -1,5 +1,6 @@
 use client_rust_fix::config::Settings;
 use std::env;
+use serial_test::serial;
 
 fn setup() {
     // Clear all relevant environment variables before each test
@@ -15,6 +16,7 @@ fn setup() {
 }
 
 #[test]
+#[serial]
 fn test_settings_from_env_defaults() {
     setup();
     let settings = Settings::from_env().expect("load settings");
@@ -22,6 +24,7 @@ fn test_settings_from_env_defaults() {
 }
 
 #[test]
+#[serial]
 fn test_settings_custom_values() {
     setup();
     
