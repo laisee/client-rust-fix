@@ -32,23 +32,23 @@ Power.Trade API home page can be found [here](https://support.power.trade/api/ap
    
    See [https://forge.rust-lang.org/infra/other-installation-methods.html](here) for other installation methods.
 
-3. Check that Rustup has installed and configured 1.80 as the default version by typing following command in a console/terminal window
+2. Check that Rustup has installed and configured **1.80** as the default version by typing the following command in a console/terminal window
   ```
   rustc --version
   ```
     the version displayed should be: "rustc 1.80.0 (default)"
-3. Copy the sample env file(".env.example") to create a file for Test environment
+3. Copy the sample env file (".env.example") to create a file for the Test environment
    ```
    cp .env.example .env.test
    ```
-4. Open the new .env file (".env.test") and update the settings for Test API env
+4. Open the new `.env.test` file and update the settings for your Test API environment
    
-6. Save the file and run client on Test environment.
+5. Save the file and run the client on the Test environment.
     
    n.b. Rust client runtime environment is set on command line as a parameter for the --env flag with value of 'development', 'test', 'production' 
    ```
    cargo run -- --env test
    ```
-8. Review console output and log files (see 'app.log' in same folder) to view client activity
+6. Review console output and log files (see `app.log` in the same folder) to view client activity
    
    

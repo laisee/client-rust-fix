@@ -1,35 +1,52 @@
-use std::{error::Error, thread::{self, spawn}, time::Duration, sync::{Arc, Mutex}, env::var};
 use log::info;
+use native_tls::TlsStream;
+use std::io::Write;
+use std::net::TcpStream;
+use std::{
+    error::Error,
+    sync::{Arc, Mutex},
+    thread::{self, spawn},
+    time::Duration,
+};
+
+use crate::messages::factory::FixMessageFactory;
+use crate::config::Settings;
 
 #[allow(dead_code)]
-pub(crate) fn exec(seqnum: Arc<Mutex<u32>>) -> Result<bool, Box<dyn Error>> {
-    // Get heartbeat interval from environment variable or use default
-    let heartbeat_interval = match var("PT_HEARTBEAT_INTERVAL") {
-        Ok(val) => val.parse::<u64>().unwrap_or(60),
-        Err(_) => 60, // Default to 60 seconds if not specified
-    };
-    
-    // Get heartbeat count from environment variable or use default
-    let heartbeat_count = match var("PT_HEARTBEAT_COUNT") {
-        Ok(val) => val.parse::<u32>().unwrap_or(5),
-        Err(_) => 5, // Default to 5 if not specified
-    };
-    
-    info!("Heartbeat configured with interval: {}s, count: {}", heartbeat_interval, heartbeat_count);
-    
+pub(crate) fn exec(
+    apikey: String,
+    tls_stream: Arc<Mutex<TlsStream<TcpStream>>>,
+    seqnum: Arc<Mutex<u32>>,
+    settings: &Settings,
+) -> Result<bool, Box<dyn Error>> {
+    let heartbeat_interval = settings.heartbeat_interval;
+    let heartbeat_count = settings.heartbeat_count;
+
+    info!(
+        "Heartbeat configured with interval: {}s, count: {}",
+        heartbeat_interval, heartbeat_count
+    );
+
     // Create a copy of the sequence number reference for the thread
     let seqnum_copy = Arc::clone(&seqnum);
-    
+    let tls_copy = Arc::clone(&tls_stream);
+    let api_clone = apikey.clone();
+    let target = settings.target_comp_id.clone();
+
     // Spawn a thread that periodically sends heartbeat messages
     let _handle = spawn(move || {
         let mut count: u32 = 0;
         while count < heartbeat_count {
             let mut num = seqnum_copy.lock().unwrap();
-            println!("In heartbeat thread: count = {} of {}", count, heartbeat_count);
-            count += 1;
+            let hb_msg = FixMessageFactory::heartbeat(api_clone.clone(), *num, &target);
+            if let Ok(msg) = hb_msg {
+                if let Ok(mut stream) = tls_copy.lock() {
+                    let _ = stream.write(msg.to_fix_string().unwrap().as_bytes());
+                }
+            }
             *num += 1;
-            println!("Sequence number in thread is now: {}", *num);
-            drop(num); // Explicitly drop the lock before sleeping
+            count += 1;
+            drop(num);
             thread::sleep(Duration::from_secs(heartbeat_interval));
         }
     });
