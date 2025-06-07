@@ -8,26 +8,32 @@ mod publish;
 #[path = "scenarios/single_leg_order.rs"]
 mod single_leg_order;
 
-pub (crate) mod messages;   
+pub(crate) mod messages;
 pub(crate) mod setup;
 
-use clap::ValueEnum;
+use crate::config::Settings;
 use crate::messages::factory::FixMessageFactory;
-use log::{error,info};
+use crate::messages::utils::{increment_seqnum, setup_tls_connection};
+use clap::ValueEnum;
+use log::{error, info};
 use native_tls::TlsStream;
 use publish::rfq_publish_fix;
 use quickfix::Message;
 use quickfix_msg44::field_types::{OrdType, Side};
-use setup::{setup_env, setup_heartbeat, setup_keys, setup_logging, setup_rfq, setup_session, setup_trading};
-use single_leg_order::{send_single_order, send_multiple_orders};
-use std::{io::Write, net::TcpStream, option::Option::Some, process::ExitCode, thread::sleep, time::Duration};
-use crate::messages::utils::{increment_seqnum, setup_tls_connection};
+use setup::{
+    setup_env, setup_heartbeat, setup_keys, setup_logging, setup_rfq, setup_session, setup_trading,
+};
+use single_leg_order::{send_multiple_orders, send_single_order};
+use std::{
+    io::Write, net::TcpStream, option::Option::Some, process::ExitCode, thread::sleep,
+    time::Duration,
+};
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 enum Environment {
     Development,
     Test,
-    Production
+    Production,
 }
 pub fn main() -> ExitCode {
     let version = "version 0.1.9 built on 1/6/2024";
@@ -42,14 +48,23 @@ pub fn main() -> ExitCode {
         return ExitCode::from(FAILURE);
     }
 
+    // load configuration from environment
+    let settings = match Settings::from_env() {
+        Ok(cfg) => cfg,
+        Err(e) => {
+            error!("Failed to load configuration: {e:?}");
+            return ExitCode::from(FAILURE);
+        }
+    };
+
     // setup logging style and level
-    if !setup_logging::exec().unwrap() {
+    if !setup_logging::exec(&settings.log_file).unwrap() {
         println!("Error while setting up 'logging'");
         return ExitCode::from(FAILURE);
     }
 
     // read and initialize keys used for Fix session and power.trade trading
-    let (status, apikey, pkey ) = setup_keys::exec().unwrap();
+    let (status, apikey, pkey) = setup_keys::exec().unwrap();
     if !status {
         println!("Error while setting up 'keys'");
         return ExitCode::from(FAILURE);
@@ -63,17 +78,18 @@ pub fn main() -> ExitCode {
         println!("Error while setting up 'session'");
         return ExitCode::from(FAILURE);
     } else {
-        println!("Seqnum initialized with value {:?}", seqnum.lock().unwrap() );
+        println!("Seqnum initialized with value {:?}", seqnum.lock().unwrap());
     }
 
     // setup heartbeat process used for maintaining Fix connection
-    if !setup_heartbeat::exec(seqnum.clone()).unwrap() {
+    let tls_arc = std::sync::Arc::new(std::sync::Mutex::new(tls_stream));
+    if !setup_heartbeat::exec(apikey.clone(), tls_arc.clone(), seqnum.clone(), &settings).unwrap() {
         println!("Error while setting up 'heartbeat'");
         return ExitCode::from(FAILURE);
     }
 
     // setup common trading settings and defaults
-    if !setup_trading::exec().unwrap() {
+    if !setup_trading::exec(&settings).unwrap() {
         println!("Error while setting up 'trading'");
         return ExitCode::from(FAILURE);
     }
@@ -81,11 +97,11 @@ pub fn main() -> ExitCode {
     //
     // Execute assigned scenario now session is opened
     //
-    match scenario.as_str()  {
+    match scenario.as_str() {
         "ORDER" => {
             // TODO - take these values from setup_trading call
-            const PRICE: f64 = 888.00; 
-            const QUANTITY: f64 = 0.20; 
+            const PRICE: f64 = 888.00;
+            const QUANTITY: f64 = 0.20;
             const SIDE: Side = Side::Sell;
             const ORDERTYPE: OrdType = OrdType::Limit;
             let symbol: String = "SOL-USD".to_string();
@@ -93,36 +109,67 @@ pub fn main() -> ExitCode {
             //
             // publish new limit single leg order, listen for response msg and cancel (if cancel_order == 'true')
             // use current seqnum(latest) for new order
-            let mut seqnum_latest = *seqnum.lock().unwrap() ;
-            let order_msg = FixMessageFactory::new_single_leg_order(apikey.clone(), PRICE, QUANTITY, symbol, SIDE,ORDERTYPE, seqnum_latest).unwrap();
+            let mut seqnum_latest = *seqnum.lock().unwrap();
+            let order_msg = FixMessageFactory::new_single_leg_order(
+                apikey.clone(),
+                PRICE,
+                QUANTITY,
+                symbol,
+                SIDE,
+                ORDERTYPE,
+                seqnum_latest,
+            )
+            .unwrap();
 
             // - increment seqnum for use in cancel order
-            seqnum_latest = increment_seqnum(seqnum.clone()); 
-            info!("Sequence number incremented to {:?} after sending New Order message {:?}", seqnum_latest, order_msg);
-            send_single_order(&apikey.clone(),  &mut tls_stream, order_msg.clone(), seqnum_latest, Some(true));
-        },
+            seqnum_latest = increment_seqnum(seqnum.clone());
+            info!(
+                "Sequence number incremented to {:?} after sending New Order message {:?}",
+                seqnum_latest, order_msg
+            );
+            send_single_order(
+                &apikey.clone(),
+                tls_arc.clone(),
+                order_msg.clone(),
+                seqnum_latest,
+                Some(true),
+            );
+        }
         "ORDERS" => {
             //
             // publish new set of limit single leg orders, listen for response msg and cancel (if cancel_order == 'true')
             //
-            const PRICE: f64 = 88.00; 
-            const QUANTITY: f64 = 1.00; 
+            const PRICE: f64 = 88.00;
+            const QUANTITY: f64 = 1.00;
             const SIDE: Side = Side::Buy;
             const ORDERTYPE: OrdType = OrdType::Limit;
             let symbol: String = "SOL-USD".to_string();
 
             // use current seqnum(latest) for new order
-            let mut seqnum_latest = *seqnum.lock().unwrap() ;
-            let order_msg = FixMessageFactory::new_single_leg_order(apikey.clone(), PRICE, QUANTITY, symbol, SIDE,ORDERTYPE, seqnum_latest).unwrap();
+            let mut seqnum_latest = *seqnum.lock().unwrap();
+            let order_msg = FixMessageFactory::new_single_leg_order(
+                apikey.clone(),
+                PRICE,
+                QUANTITY,
+                symbol,
+                SIDE,
+                ORDERTYPE,
+                seqnum_latest,
+            )
+            .unwrap();
             let orders: Vec<Message> = vec![order_msg.clone()];
 
-            // increment seqnum for cancel of new order 
-            seqnum_latest = increment_seqnum(seqnum.clone()); 
-            info!("Sequence number incremented to {:?} after sending New Order message {:?}", seqnum_latest, order_msg.clone());
+            // increment seqnum for cancel of new order
+            seqnum_latest = increment_seqnum(seqnum.clone());
+            info!(
+                "Sequence number incremented to {:?} after sending New Order message {:?}",
+                seqnum_latest,
+                order_msg.clone()
+            );
 
             // TODO - enhance send_nultiple to manage seqnums
-            send_multiple_orders(&apikey, tls_stream, orders, seqnum_latest, true);
-        },
+            send_multiple_orders(&apikey, tls_arc.clone(), orders, seqnum_latest, true);
+        }
         "RFQ_QUOTE" => {
             //
             // publish RFQ quote request & listen for response msgs
@@ -130,22 +177,25 @@ pub fn main() -> ExitCode {
             // use current seqnum(latest) for new quote
             let mut seqnum_latest = *seqnum.lock().unwrap();
 
-            let (status, rfq_quote_msg ) = setup_rfq::exec(&apikey, seqnum_latest).unwrap();
+            let (status, rfq_quote_msg) = setup_rfq::exec(&apikey, seqnum_latest).unwrap();
             if !status {
                 error!("Error while setting up 'rfq'");
                 return ExitCode::from(FAILURE);
             } else {
-                seqnum_latest = increment_seqnum(seqnum.clone()); 
-                info!("Sequence number incremented to {:?} after sending RFQ message {:?}", seqnum_latest, rfq_quote_msg);
+                seqnum_latest = increment_seqnum(seqnum.clone());
+                info!(
+                    "Sequence number incremented to {:?} after sending RFQ message {:?}",
+                    seqnum_latest, rfq_quote_msg
+                );
             }
             info!("Sending RFQ Quote {:?}", rfq_quote_msg);
             println!("Sending RFQ Quote {:?}", rfq_quote_msg);
-            rfq_publish_fix(tls_stream, rfq_quote_msg);
-        }, 
+            rfq_publish_fix(tls_arc.clone(), rfq_quote_msg);
+        }
         "RFQ_LISTEN" => {
             //
             // publish RFQ subscription request
-            // TODO - implement and test subcribe/listen/unsubscribe 
+            // TODO - implement and test subcribe/listen/unsubscribe
             // TODO - refactor setup to return either quote/listem msg
             //
 
@@ -157,13 +207,16 @@ pub fn main() -> ExitCode {
                 println!("Error while setting up 'rfq'");
                 return ExitCode::from(FAILURE);
             } else {
-                seqnum_latest = increment_seqnum(seqnum.clone()); 
-                info!("Sequence number incremented to {:?} after sending RFQ message {:?}", seqnum_latest, rfq_subscribe_msg);
+                seqnum_latest = increment_seqnum(seqnum.clone());
+                info!(
+                    "Sequence number incremented to {:?} after sending RFQ message {:?}",
+                    seqnum_latest, rfq_subscribe_msg
+                );
             }
             info!("Sending RFQ Listen {:?}", rfq_subscribe_msg);
             println!("Sending RFQ Listen {:?}", rfq_subscribe_msg);
-            rfq_publish_fix(tls_stream, rfq_subscribe_msg);
-            },
+            rfq_publish_fix(tls_arc.clone(), rfq_subscribe_msg);
+        }
         _ => {
             panic!("Error - no valid scenario defined to execute. Value provided was '{scenario}'");
         }
@@ -172,21 +225,29 @@ pub fn main() -> ExitCode {
 }
 
 fn _send_heartbeat(apikey: String, seqnum: u32, mut tls_stream: TlsStream<TcpStream>) {
-
     println!("Hello from spawned thread for seqnum {seqnum}");
     let heartbeat_msg: Message = match FixMessageFactory::heartbeat(apikey, seqnum, "PT-OE") {
         Ok(heartbeat_msg) => {
             info!("Created new Fix heartbeat msg : {:?}", heartbeat_msg);
             heartbeat_msg
-        },
+        }
         Err(error) => {
             error!("Error creating Fix Logon message -> {error:?}");
             return;
         }
     };
-    match tls_stream.write( heartbeat_msg.to_fix_string().expect("Error converting Logon Msg to Bytes").as_bytes()) {
-        Ok(byte_count) => { println!("Sent {byte_count} bytes for heartbeat"); }
-        Err(error) => { println!("Error while sending msg {error} "); }
+    match tls_stream.write(
+        heartbeat_msg
+            .to_fix_string()
+            .expect("Error converting Logon Msg to Bytes")
+            .as_bytes(),
+    ) {
+        Ok(byte_count) => {
+            println!("Sent {byte_count} bytes for heartbeat");
+        }
+        Err(error) => {
+            println!("Error while sending msg {error} ");
+        }
     };
     sleep(Duration::from_millis(500));
 }

@@ -8,4 +8,5 @@ pub mod scenarios {
     pub mod rfq_publish;
     pub mod single_leg_order;
 }
+pub mod config;
 pub mod setup;

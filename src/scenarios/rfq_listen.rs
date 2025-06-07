@@ -1,21 +1,32 @@
 use log::{error, info};
 use native_tls::TlsStream;
 use quickfix::Message;
-use std::{env::var, io::{ErrorKind, Read, Write}, net::TcpStream, thread::sleep, time::Duration};
+use std::{
+    env::var,
+    io::{ErrorKind, Read, Write},
+    net::TcpStream,
+    sync::{Arc, Mutex},
+    thread::sleep,
+    time::Duration,
+};
 
 #[allow(dead_code)]
-pub fn rfq_listen_fix(mut tls_stream: TlsStream<TcpStream>, rfq: Message) {
-
+pub fn rfq_listen_fix(tls_stream: Arc<Mutex<TlsStream<TcpStream>>>, rfq: Message) {
     info!("Executing RFQ listen scenario");
     println!("Executing RFQ listen scenario");
 
-    match tls_stream.write(rfq.to_fix_string() .expect("Error while sending RFQ listen message").as_bytes()) { 
+    match tls_stream.lock().unwrap().write(
+        rfq.to_fix_string()
+            .expect("Error while sending RFQ listen message")
+            .as_bytes(),
+    ) {
         Ok(byte_count) => println!("Sent {rfq:?} with {byte_count:?} bytes ... "),
-        Err(error) => println!("Error while sending order msg {error:?} ")
+        Err(error) => println!("Error while sending order msg {error:?} "),
     };
 
     let mut count: u32 = 0;
-    let limit_str = var("PT_LISTEN_EPOCH").expect("Error - PT_LISTEN_EPOCH must be set in .env file");
+    let limit_str =
+        var("PT_LISTEN_EPOCH").expect("Error - PT_LISTEN_EPOCH must be set in .env file");
     let limit: u32 = limit_str.parse::<u32>().unwrap();
 
     loop {
@@ -26,8 +37,8 @@ pub fn rfq_listen_fix(mut tls_stream: TlsStream<TcpStream>, rfq: Message) {
         }
         println!("RFQ:Listen - listen epoch {count} of {limit}");
         let mut buffer2 = [0; 1024];
-        //let byte_count: usize = tls_stream.read(&mut buffer2).expect("Error reading bytes from RFQ responses"); 
-        match tls_stream.read(&mut buffer2) {
+        //let byte_count: usize = tls_stream.read(&mut buffer2).expect("Error reading bytes from RFQ responses");
+        match tls_stream.lock().unwrap().read(&mut buffer2) {
             Ok(byte_count) => {
                 if byte_count > 0 {
                     // Process the read bytes
