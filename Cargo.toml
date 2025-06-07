@@ -35,4 +35,5 @@ base64 = "0.22.1"
 
 [dev-dependencies]
 serial_test = "3.2.0"
+mockall = "0.12.1"
 
