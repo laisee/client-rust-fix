@@ -8,10 +8,11 @@ mod publish;
 #[path = "scenarios/single_leg_order.rs"]
 mod single_leg_order;
 
+pub(crate) mod config;
 pub(crate) mod messages;
 pub(crate) mod setup;
 
-use crate::config::Settings;
+use config::Settings;
 use crate::messages::factory::FixMessageFactory;
 use crate::messages::utils::{increment_seqnum, setup_tls_connection};
 use clap::ValueEnum;

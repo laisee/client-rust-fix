@@ -1,4 +1,3 @@
-use crate::{config::Settings, messages::factory::FixMessageFactory};
 use log::info;
 use native_tls::TlsStream;
 use std::io::Write;
@@ -9,6 +8,9 @@ use std::{
     thread::{self, spawn},
     time::Duration,
 };
+
+use crate::messages::factory::FixMessageFactory;
+use crate::config::Settings;
 
 #[allow(dead_code)]
 pub(crate) fn exec(

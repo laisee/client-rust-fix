@@ -1,6 +1,5 @@
-use crate::config::Settings;
-use quickfix_msg44::field_types::{OrdType, Side};
 use std::error::Error;
+use quickfix_msg44::field_types::{OrdType, Side};
 
 //
 // Placeholder for common trading settings and parameters, taken from ENV or file
@@ -27,15 +26,9 @@ pub(crate) fn exec(settings: &Settings) -> Result<bool, Box<dyn Error>> {
 
     assert!(price > 0.0);
     assert!(quantity > 0.0);
-    assert!(
-        side == Side::Buy || side == Side::Sell,
-        "SIDE should be either Buy or Sell"
-    );
-    assert!(symbol == "SOL-USD", "Symbol should be equal to 'SOL-USD'");
-    assert!(
-        order_type == OrdType::Limit || order_type == OrdType::Market,
-        "ORDERTYPE should be either Limit or Market"
-    );
+    assert!(side == Side::Buy || side == Side::Sell, "SIDE should be either Buy or Sell");
+    assert!(order_type == OrdType::Limit || order_type == OrdType::Market, "ORDERTYPE should be either Limit or Market");
+    
     Ok(true)
 }
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -51,3 +44,4 @@ pub(crate) fn exec(settings: &Settings) -> Result<bool, Box<dyn Error>> {
 //let order_msg: Message = FixMessageFactory::new_single_leg_order(apikey.clone(), now, PRICE, QUANTITY, SYMBOL.to_string(), SIDE, ORDERTYPE, *num).unwrap();
 //drop(num);
 //println!("Created new single leg order msg using FixMsgFactory  {order_msg:?}");
+use crate::config::Settings;
