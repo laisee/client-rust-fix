@@ -1,3 +1,6 @@
+use std::time as duration;
+use std::thread::sleep;
+
 use client_rust_fix::messages::factory::FixMessageFactory;
 use client_rust_fix::messages::utils::{generate_order_id, side_as_int};
 use quickfix_msg44::field_types::{OrdType, Side};
@@ -32,4 +35,41 @@ fn test_create_and_validate_order() {
     }
 }
 
-// More integration tests would be added here
+#[test]
+fn test_generate_order_id() {
+    // Test that generate_order_id returns a unique ID each time
+    let id1 = generate_order_id();
+    sleep(duration::Duration::from_millis(100));
+    let id2 = generate_order_id();
+    
+    // IDs should be different
+    assert_ne!(id1, id2, "Generated order IDs should be unique");
+    
+    // IDs should be non-zero
+    assert!(id1 > 0, "Order ID should be greater than 0");
+    assert!(id2 > 0, "Order ID should be greater than 0");
+    
+    // Print the IDs for debugging
+    println!("ID1: {}, ID2: {}", id1, id2);
+}
+
+#[test]
+fn test_side_as_int() {
+    // Test conversion of Side enum to integer values
+    assert_eq!(side_as_int(Side::Buy), 1);
+    assert_eq!(side_as_int(Side::Sell), 2);
+    assert_eq!(side_as_int(Side::BuyMinus), 3);
+    assert_eq!(side_as_int(Side::SellPlus), 4);
+    assert_eq!(side_as_int(Side::SellShort), 5);
+    assert_eq!(side_as_int(Side::SellShortExempt), 6);
+    assert_eq!(side_as_int(Side::Undisclosed), 7);
+    assert_eq!(side_as_int(Side::Cross), 8);
+    assert_eq!(side_as_int(Side::CrossShort), 9);
+    assert_eq!(side_as_int(Side::CrossShortExempt), 10);
+    assert_eq!(side_as_int(Side::AsDefined), 11);
+    assert_eq!(side_as_int(Side::Opposite), 12);
+    assert_eq!(side_as_int(Side::Subscribe), 13);
+    assert_eq!(side_as_int(Side::Redeem), 14);
+    assert_eq!(side_as_int(Side::Lend), 15);
+    assert_eq!(side_as_int(Side::Borrow), 16);
+}

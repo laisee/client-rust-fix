@@ -262,7 +262,7 @@ pub fn send_multiple_orders(
     seqnum: u32,
     cancel: bool,
 ) {
-    info!("Add-multiple-orders -> TLS: {:?}", tls_stream);
+    info!("Add-multiple-orders -> TLS: [TLS Stream]");
     for order in orders {
         info!("Sending multi/set order to be executed: {:?}", order);
         send_single_order(apikey, tls_stream.clone(), order, seqnum, Some(cancel));

@@ -36,4 +36,30 @@ impl Settings {
             target_comp_id: env::var("PT_TARGET_COMP_ID").unwrap_or_else(|_| "PT-OE".to_string()),
         })
     }
+    
+    // Add a new method to create Settings with custom values for testing
+    #[allow(dead_code)]
+    pub fn new(
+        symbol: &str,
+        price: f64,
+        quantity: f64,
+        side: &str,
+        order_type: &str,
+        log_file: &str,
+        heartbeat_interval: u64,
+        heartbeat_count: u32,
+        target_comp_id: &str,
+    ) -> Self {
+        Self {
+            symbol: symbol.to_string(),
+            price,
+            quantity,
+            side: side.to_string(),
+            order_type: order_type.to_string(),
+            log_file: log_file.to_string(),
+            heartbeat_interval,
+            heartbeat_count,
+            target_comp_id: target_comp_id.to_string(),
+        }
+    }
 }

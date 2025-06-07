@@ -339,7 +339,8 @@ pub fn process_key(pem: &str) -> Result<EcdsaPrivateKey, String> {
 pub fn generate_order_id() -> u64 {
     let start = SystemTime::now();
     let since_the_epoch = start.duration_since(UNIX_EPOCH).expect("Time went backwards");
-    since_the_epoch.as_secs()
+    // Combine seconds and nanoseconds to ensure uniqueness
+    since_the_epoch.as_secs() * 1_000_000_000 + since_the_epoch.subsec_nanos() as u64
 }
 
 /// Generates a public key from the provided private key
