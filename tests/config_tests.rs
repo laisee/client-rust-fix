@@ -1,4 +1,4 @@
-use config::Settings;
+use client_rust_fix::config::Settings;
 use std::env;
 
 #[test]

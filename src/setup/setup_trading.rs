@@ -24,8 +24,9 @@ pub(crate) fn exec(settings: &Settings) -> Result<bool, Box<dyn Error>> {
         OrdType::Limit
     };
 
-    assert!(price > 0.0);
-    assert!(quantity > 0.0);
+    assert!(price > 0.0, "PRICE should be greater than zero");
+    assert!(quantity > 0.0, "QUANTITY should be greater than zero");
+    assert!(!symbol.is_empty(), "SYMBOL should not be empty");
     assert!(side == Side::Buy || side == Side::Sell, "SIDE should be either Buy or Sell");
     assert!(order_type == OrdType::Limit || order_type == OrdType::Market, "ORDERTYPE should be either Limit or Market");
     
