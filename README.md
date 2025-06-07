@@ -7,8 +7,15 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) ![MSRV](https://img.shields.io/badge/MSRV-1.80.0-orange)
 
 
-Rust client for power.trade Fix protocol. 
-Implements authentication and basic order management(add single order, cancel single order). 
+Rust client for power.trade Fix protocol.
+Implements authentication and basic order management(add single order, cancel single order).
+
+## Features
+* Establishes a TLS FIX session and performs logon to the Power.Trade exchange.
+* Signs JWTs with your API keys to authenticate FIX connections.
+* Provides utilities for building FIX messages including NewOrderSingle and OrderCancelRequest.
+* Scenario driven main executable that can place or cancel orders or send RFQ messages based on environment variables.
+* Integration test validates the structure of generated FIX messages without connecting to the exchange.
 
 See [list of issues](https://github.com/laisee/client-rust-fix/issues) for the planned set of enhancements and features.  
 
