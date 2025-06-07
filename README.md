@@ -1,10 +1,11 @@
 # **client-rust-fix**
 ## Rust Client for trading on [https://power.trade](power.trade) crypto exchange
 
-[![Rust](https://github.com/laisee/client-rust-fix/actions/workflows/rust.yml/badge.svg)](https://github.com/laisee/client-rust-fix/actions/workflows/rust.yml)
+[![Rust](https://github.com/laisee/client-rust-fix/actions/workflows/rust.yml/badge.svg?branch=main)](https://github.com/laisee/client-rust-fix/actions/workflows/rust.yml)
 [![CI](https://github.com/laisee/client-rust-fix/actions/workflows/ci.yml/badge.svg)](https://github.com/laisee/client-rust-fix/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) ![MSRV](https://img.shields.io/badge/MSRV-1.80.0-orange)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 [![Clippy](https://github.com/laisee/client-rust-fix/actions/workflows/clippy.yml/badge.svg?branch=main)](https://github.com/laisee/client-rust-fix/actions/workflows/clippy.yml)
+![MSRV](https://img.shields.io/badge/MSRV-1.80.0-orange)
 
 Rust client for power.trade Fix protocol.
 Implements authentication and basic order management(add single order, cancel single order).
@@ -42,7 +43,7 @@ Power.Trade API home page can be found [here](https://support.power.trade/api/ap
    ```
 4. Open the new `.env.test` file and update the settings for your Test API environment
    
-5. Save the file and run the client on the Test environment.
+5. Save the file and run the client on the Test environment(same process can be followed to create production env file '.env.prod')
     
    n.b. Rust client runtime environment is set on command line as a parameter for the --env flag with value of 'development', 'test', 'production' 
    ```
