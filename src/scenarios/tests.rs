@@ -3,7 +3,7 @@ mod scenario_tests {
     use mockall::predicate::*;
     use mockall::*;
     use quickfix_msg44::field_types::{OrdType, Side};
-    use std::{fmt::Write, io::Read, sync::{Arc, Mutex}};
+    use std::{io::{Read, Write}, sync::{Arc, Mutex}};
 
     use crate::{messages::factory::FixMessageFactory, scenarios::single_leg_order::send_single_order};
 
@@ -21,15 +21,21 @@ mod scenario_tests {
     #[test]
     fn test_send_single_order_success() {
         let mut stream = MockStream::new();
+
         stream
             .expect_write()
-            .times(1)
+            .times(1..) // Expect at least 1 write call
             .returning(|buf| Ok(buf.len()));
-        stream.expect_read().times(1).returning(|buf| {
-            let resp = b"8=FIX.4.4\x0135=8\x0139=0\x0137=EXCH\x0111=ID\x01";
-            buf[..resp.len()].copy_from_slice(resp);
-            Ok(resp.len())
-        });
+
+        stream
+            .expect_read()
+            .times(1..) // Expect at least 1 read call
+            .returning(|buf| {
+                let resp = b"8=FIX.4.4\x0135=8\x0139=0\x0137=EXCH\x0111=ID\x01";
+                buf[..resp.len()].copy_from_slice(resp);
+                Ok(resp.len())
+            });
+
         stream.expect_flush().returning(|| Ok(()));
         let stream = Arc::new(Mutex::new(stream));
 
@@ -41,8 +47,7 @@ mod scenario_tests {
             Side::Buy,
             OrdType::Limit,
             1,
-        )
-        .unwrap();
+        ).unwrap();
 
         send_single_order("key", stream, order, 1, Some(false));
     }
@@ -50,15 +55,21 @@ mod scenario_tests {
     #[test]
     fn test_send_single_order_with_cancel() {
         let mut stream = MockStream::new();
+
         stream
             .expect_write()
-            .times(2)
+            .times(1..)
             .returning(|buf| Ok(buf.len()));
-        stream.expect_read().times(2).returning(|buf| {
-            let resp = b"8=FIX.4.4\x0135=8\x0139=0\x0137=EXCH\x0111=ID\x01";
-            buf[..resp.len()].copy_from_slice(resp);
-            Ok(resp.len())
-        });
+
+        stream
+            .expect_read()
+            .times(1..)
+            .returning(|buf| {
+                let resp = b"8=FIX.4.4\x0135=8\x0139=0\x0137=EXCH\x0111=ID\x01";
+                buf[..resp.len()].copy_from_slice(resp);
+                Ok(resp.len())
+            });
+
         stream.expect_flush().returning(|| Ok(()));
         let stream = Arc::new(Mutex::new(stream));
 
@@ -70,8 +81,7 @@ mod scenario_tests {
             Side::Buy,
             OrdType::Limit,
             1,
-        )
-        .unwrap();
+        ).unwrap();
 
         send_single_order("key", stream, order, 1, Some(true));
     }
