@@ -1,25 +1,26 @@
 use crate::messages::factory::FixMessageFactory;
 use crate::messages::utils::get_attr;
 use log::{error, info};
-use native_tls::TlsStream;
 use quickfix::{FieldMap, Message};
 use quickfix_msg44::field_types::Side;
 use std::{
     io::{ErrorKind, Read, Write},
-    net::TcpStream,
     option::Option::Some,
     sync::{Arc, Mutex},
     thread::sleep,
     time::Duration,
+    fmt::Debug,
 };
 
-pub fn send_single_order(
+pub fn send_single_order<S>(
     apikey: &str,
-    tls_stream: Arc<Mutex<TlsStream<TcpStream>>>,
+    tls_stream: Arc<Mutex<S>>,
     order: Message,
     seqnum: u32,
     is_cancel_order: Option<bool>,
-) {
+) where
+    S: Read + Write + Send,
+{
     // assign parameter for cancel orders as a bool with default == 'true'
     let is_cancel_order = is_cancel_order.unwrap_or(true);
 
@@ -255,21 +256,23 @@ pub fn send_single_order(
     }
 }
 
-pub fn send_multiple_orders(
+pub fn send_multiple_orders<S>(
     apikey: &str,
-    tls_stream: Arc<Mutex<TlsStream<TcpStream>>>,
+    tls_stream: Arc<Mutex<S>>,
     orders: Vec<Message>,
     seqnum: u32,
     cancel: bool,
-) {
-    info!("Add-multiple-orders -> TLS: [TLS Stream]");
+) where
+    S: Read + Write + Send + Debug,
+{
+    info!("Add-multiple-orders -> TLS: {:?}", tls_stream);
     for order in orders {
         info!("Sending multi/set order to be executed: {:?}", order);
         send_single_order(apikey, tls_stream.clone(), order, seqnum, Some(cancel));
     }
 }
 
-fn split_fix_messages(fix_messages: &str) -> Vec<String> {
+pub(crate) fn split_fix_messages(fix_messages: &str) -> Vec<String> {
     // Split the messages based on the "8=" tag which signifies the beginning of each message
     let mut messages: Vec<String> = fix_messages
         .split("8=FIX.4.4\x01")
