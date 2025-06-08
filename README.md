@@ -5,7 +5,7 @@
 [![CI](https://github.com/laisee/client-rust-fix/actions/workflows/ci.yml/badge.svg)](https://github.com/laisee/client-rust-fix/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 [![Clippy](https://github.com/laisee/client-rust-fix/actions/workflows/clippy.yml/badge.svg?branch=main)](https://github.com/laisee/client-rust-fix/actions/workflows/clippy.yml)
-![MSRV](https://img.shields.io/badge/MSRV-1.80.0-orange)
+![MSRV](https://img.shields.io/badge/MSRV-1.86.0-orange)
 
 Rust client for power.trade Fix protocol.
 Implements authentication and basic order management(add single order, cancel single order).
