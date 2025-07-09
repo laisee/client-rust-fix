@@ -10,15 +10,15 @@ use crate::messages::factory::FixMessageFactory;
 pub(crate) fn exec(apikey: &str, seqnum_latest: u32) -> Result<(bool,Message), Box<dyn Error>> {
 
     // Default values for new rfq quote below
-    // TODO - assign values fron .env file
+    // TODO - assign values from .env file
     // 
     static SYMBOL: &str = "BTC-USD";
     const QUANTITY: f64 = 2.00; 
     const SIDE: Side = Side::Sell;
     const ORDERTYPE: OrdType = OrdType::Limit;
-    // create RFQ subscription msg for demonstrationg RFQ quote flow 
+    // create RFQ subscription msg for demonstrating RFQ quote flow 
     //
-    // array of topica(symbols) to subscribe for RFQ updates
+    // array of topics(symbols) to subscribe for RFQ updates
     //
     let _topics: Vec<String> = ["ETH-USD", "SOL-USD", "DOGE-USD"]
         .iter()
@@ -32,8 +32,16 @@ pub(crate) fn exec(apikey: &str, seqnum_latest: u32) -> Result<(bool,Message), B
 
     // Create RFQ quote msg for creating new RFQ quote for a symbol
     //
-    let rfq_quote_msg: Message = FixMessageFactory::new_rfq_quote( apikey, SYMBOL.to_string(), SIDE, QUANTITY, ORDERTYPE, seqnum_latest ).unwrap();
-    info!("Created new RFQ Quote msg using FixMsgFactory: {rfq_quote_msg:?}");
+    let rfq_quote_msg: Message = FixMessageFactory::new_rfq_quote(
+        apikey, 
+        SYMBOL.to_string(), 
+        SIDE, 
+        QUANTITY, 
+        ORDERTYPE, 
+        seqnum_latest 
+    ).unwrap();
+    
+    info!("Created new RFQ Quote msg using FixMsgFactory: {:?}", rfq_quote_msg);
 
     Ok((true, rfq_quote_msg))
 }

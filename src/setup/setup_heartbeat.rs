@@ -35,7 +35,7 @@ pub(crate) fn exec(
 
     // Spawn a thread that periodically sends heartbeat messages
     let _handle = spawn(move || {
-        let mut count: u32 = 0;
+        let mut count: u64 = 0;
         while count < heartbeat_count {
             let mut num = seqnum_copy.lock().unwrap();
             let hb_msg = FixMessageFactory::heartbeat(api_clone.clone(), *num, &target);

@@ -1,5 +1,5 @@
 use crate::messages::utils::execute_ws_request;
-use log::info;
+use log::{info, error, debug};
 use native_tls::TlsStream;
 use quickfix::Message;
 use std::{
@@ -10,55 +10,64 @@ use std::{
     thread::sleep,
     time::Duration,
 };
+use crate::config::Settings;
 
-pub fn rfq_publish_fix(tls_stream: Arc<Mutex<TlsStream<TcpStream>>>, rfq: Message) {
+#[allow(dead_code)]
+pub fn rfq_publish_fix(
+    tls_stream: Arc<Mutex<TlsStream<TcpStream>>>, 
+    rfq: Message,
+    settings: Option<&Settings>
+) {
     info!("Executing RFQ publish scenario");
-    println!("Executing RFQ publish scenario");
 
     match tls_stream.lock().unwrap().write(
         rfq.to_fix_string()
-            .expect("Error while sending RFQ listen message")
+            .expect("Error while sending RFQ publish message")
             .as_bytes(),
     ) {
-        Ok(byte_count) => println!("Sent {rfq:?} with {byte_count:?} bytes ... "),
-        Err(error) => println!("Error while sending order msg {error:?} "),
+        Ok(byte_count) => info!("Sent RFQ with {} bytes", byte_count),
+        Err(error) => error!("Error while sending order msg: {:?}", error),
     };
 
     let mut count: u32 = 0;
-    let limit_str =
-        var("PT_PUBLISH_EPOCH").expect("Error - PT_PUBLISH_EPOCH must be set in .env file");
-    let limit: u32 = limit_str.parse::<u32>().unwrap();
+    let limit: u32 = if let Some(settings) = settings {
+        settings.publish_epoch as u32
+    } else {
+        let limit_str = var("PT_PUBLISH_EPOCH")
+            .expect("Error - PT_PUBLISH_EPOCH must be set in .env file");
+        limit_str.parse::<u32>().unwrap()
+    };
+
     loop {
-        println!("RFQ-Publish - checking for new response");
+        debug!("RFQ-Publish - checking for new response");
         count += 1;
         if count > limit {
             break;
         }
-        println!("RFQ-Publish - listen epoch {count} of {limit}");
+        debug!("RFQ-Publish - listen epoch {count} of {limit}");
         let mut buffer2 = [0; 1024];
-        //let byte_count: usize = tls_stream.read(&mut buffer2).expect("Error reading bytes from RFQ responses");
         match tls_stream.lock().unwrap().read(&mut buffer2) {
             Ok(byte_count) => {
                 if byte_count > 0 {
                     // Process the read bytes
                     let response =
                         String::from_utf8_lossy(&buffer2[..byte_count]).replace("\x01", "|");
-                    println!("RFQ-Publish  {byte_count} bytes: {response:?}");
+                    info!("RFQ-Publish received {} bytes: {}", byte_count, response);
                 }
             }
             Err(ref error) if error.kind() == ErrorKind::WouldBlock => {
                 // WouldBlock indicates that the read operation would block (non-blocking mode)
-                println!("RFQ-Publish ... would block, continuing...");
+                debug!("RFQ-Publish ... would block, continuing...");
                 continue;
             }
             Err(ref error) if error.kind() == ErrorKind::TimedOut => {
                 // TimedOut indicates that the read operation timed out
-                println!("RFQ-Publish - Read timed out, continuing...");
+                debug!("RFQ-Publish - Read timed out, continuing...");
                 continue;
             }
             Err(error) => {
                 // Handle other errors
-                eprintln!("RFQ-Publish - error reading from stream: {error:?}");
+                error!("RFQ-Publish - error reading from stream: {:?}", error);
                 continue;
             }
         }
@@ -68,6 +77,6 @@ pub fn rfq_publish_fix(tls_stream: Arc<Mutex<TlsStream<TcpStream>>>, rfq: Messag
 
 #[allow(dead_code)]
 pub fn _rfq_publish_ws(rfq: String) {
-    info!("Sending RFQ -> {rfq}");
+    info!("Sending RFQ -> {}", rfq);
     execute_ws_request(&rfq);
 }

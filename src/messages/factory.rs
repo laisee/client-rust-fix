@@ -75,7 +75,7 @@ impl FixMessageFactory {
         let order_type: char = order_type_to_char(order_type); // OrdType   [40]
         let side_int:u32 = side_as_int(side);              // Side          [54]
         let ts: String = generate_ts(0);        // SendingTime   [52]
-        let target_comp_id = "PT-OE";                // TargetCompID  [56] - use config value TODO
+        let target_comp_id: &'static str = "PT-OE";        // TargetCompID  [56] - use config value TODO
         let time_in_force: u32 = 1;                        // TimeInForce   [59] - '1' = GTC
 
         // Body

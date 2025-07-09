@@ -5,9 +5,10 @@ mod scenario_tests {
     use quickfix_msg44::field_types::{OrdType, Side};
     use std::{io::{Read, Write}, sync::{Arc, Mutex}};
 
-    use crate::{messages::factory::FixMessageFactory, scenarios::single_leg_order::send_single_order};
+    use crate::{messages::factory::FixMessageFactory, scenarios::single_leg_order::send_single_order, config::Settings};
 
     mock! {
+        #[derive(Debug)]
         Stream {}
         impl Write for Stream {
             fn write(&mut self, buf: &[u8]) -> std::io::Result<usize>;
@@ -49,7 +50,25 @@ mod scenario_tests {
             1,
         ).unwrap();
 
-        send_single_order("key", stream, order, 1, Some(false));
+        // Create a test settings object with cancel_order set to false
+        let settings = Settings {
+            symbol: "BTC-USD".to_string(),
+            price: 1.0,
+            quantity: 1.0,
+            side: "Buy".to_string(),
+            order_type: "Limit".to_string(),
+            scenario: "ORDER".to_string(),
+            server: "test.server.com".to_string(),
+            heartbeat_interval: 30,
+            heartbeat_count: 10,
+            listen_epoch: 42,
+            publish_epoch: 24,
+            cancel_order: false,
+            log_file: "test.log".to_string(),
+            target_comp_id: "TEST-ID".to_string(),
+        };
+
+        send_single_order(stream, order, Some(&settings));
     }
 
     #[test]
@@ -83,7 +102,25 @@ mod scenario_tests {
             1,
         ).unwrap();
 
-        send_single_order("key", stream, order, 1, Some(true));
+        // Create a test settings object with cancel_order set to true
+        let settings = Settings {
+            symbol: "BTC-USD".to_string(),
+            price: 1.0,
+            quantity: 1.0,
+            side: "Buy".to_string(),
+            order_type: "Limit".to_string(),
+            scenario: "ORDER".to_string(),
+            server: "test.server.com".to_string(),
+            heartbeat_interval: 30,
+            heartbeat_count: 10,
+            listen_epoch: 42,
+            publish_epoch: 24,
+            cancel_order: true,
+            log_file: "test.log".to_string(),
+            target_comp_id: "TEST-ID".to_string(),
+        };
+
+        send_single_order(stream, order, Some(&settings));
     }
 
     #[test]

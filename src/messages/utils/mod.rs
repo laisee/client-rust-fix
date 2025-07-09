@@ -12,6 +12,7 @@ use std::{
     fs::File,
     io::Read,
     net::TcpStream,
+    sync::atomic::{AtomicU64, Ordering},
     thread::sleep,
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
@@ -386,13 +387,22 @@ pub fn process_key(pem: &str) -> Result<EcdsaPrivateKey, String> {
     }
 }
 
+// Add a static counter to ensure uniqueness
+static ORDER_ID_COUNTER: AtomicU64 = AtomicU64::new(0);
+
 #[allow(dead_code)]
 pub fn generate_order_id() -> u64 {
     let start = SystemTime::now();
     let since_the_epoch = start
         .duration_since(UNIX_EPOCH)
-        .expect("Time went backwards");
-    since_the_epoch.as_secs() * 1_000_000_000 + since_the_epoch.subsec_nanos() as u64
+        .expect("Time went backwards!!");
+    
+    // Combine timestamp with an incrementing counter to guarantee uniqueness
+    let timestamp = since_the_epoch.as_secs() * 1_000_000_000 + since_the_epoch.subsec_nanos() as u64;
+    let counter = ORDER_ID_COUNTER.fetch_add(1, Ordering::SeqCst);
+    
+    // Mix the counter into the lower bits of the timestamp
+    timestamp + counter
 }
 
 /// Generates a public key from the provided private key

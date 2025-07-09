@@ -12,7 +12,6 @@ mod config;
 pub(crate) mod messages;
 pub(crate) mod setup;
 
-use config::Settings;
 use crate::messages::factory::FixMessageFactory;
 use crate::messages::utils::{increment_seqnum, setup_tls_connection};
 use clap::ValueEnum;
@@ -42,25 +41,25 @@ pub fn main() -> ExitCode {
     const SUCCESS: u8 = 0;
     const FAILURE: u8 = 1;
 
-    // read env vars and default settings
-    let (status, scenario) = setup_env::exec().unwrap();
-    if !status {
-        println!("Error while setting up 'env'");
-        return ExitCode::from(FAILURE);
-    }
-
-    // load configuration from environment
-    let settings = match Settings::from_env() {
+    // Load configuration first (we need it for logging)
+    let config = match config::load_config() {
         Ok(cfg) => cfg,
         Err(e) => {
-            error!("Failed to load configuration: {e:?}");
+            eprintln!("Failed to load configuration: {}", e);
             return ExitCode::from(FAILURE);
         }
     };
 
-    // setup logging style and level
-    if !setup_logging::exec(&settings.log_file).unwrap() {
-        println!("Error while setting up 'logging'");
+    // Setup logging with the config
+    if let Err(e) = setup_logging::exec(&config) {
+        eprintln!("Failed to set up logging: {}", e);
+        return ExitCode::from(FAILURE);
+    }
+    
+    // read env vars and default settings
+    let (status, scenario) = setup_env::exec().unwrap();
+    if !status {
+        println!("Error while setting up 'env'");
         return ExitCode::from(FAILURE);
     }
 
@@ -84,13 +83,13 @@ pub fn main() -> ExitCode {
 
     // setup heartbeat process used for maintaining Fix connection
     let tls_arc = std::sync::Arc::new(std::sync::Mutex::new(tls_stream));
-    if !setup_heartbeat::exec(apikey.clone(), tls_arc.clone(), seqnum.clone(), &settings).unwrap() {
+    if !setup_heartbeat::exec(apikey.clone(), tls_arc.clone(), seqnum.clone(), &config).unwrap() {
         println!("Error while setting up 'heartbeat'");
         return ExitCode::from(FAILURE);
     }
 
     // setup common trading settings and defaults
-    if !setup_trading::exec(&settings).unwrap() {
+    if !setup_trading::exec(&config).unwrap() {
         println!("Error while setting up 'trading'");
         return ExitCode::from(FAILURE);
     }
@@ -129,11 +128,9 @@ pub fn main() -> ExitCode {
                 seqnum_latest, order_msg
             );
             send_single_order(
-                &apikey.clone(),
                 tls_arc.clone(),
                 order_msg.clone(),
-                seqnum_latest,
-                Some(true),
+                Some(&config),
             );
         }
         "ORDERS" => {
@@ -169,7 +166,7 @@ pub fn main() -> ExitCode {
             );
 
             // TODO - enhance send_nultiple to manage seqnums
-            send_multiple_orders(&apikey, tls_arc.clone(), orders, seqnum_latest, true);
+            send_multiple_orders(tls_arc.clone(), orders, Some(&config));
         }
         "RFQ_QUOTE" => {
             //
@@ -191,7 +188,7 @@ pub fn main() -> ExitCode {
             }
             info!("Sending RFQ Quote {:?}", rfq_quote_msg);
             println!("Sending RFQ Quote {:?}", rfq_quote_msg);
-            rfq_publish_fix(tls_arc.clone(), rfq_quote_msg);
+            rfq_publish_fix(tls_arc.clone(), rfq_quote_msg, Some(&config));
         }
         "RFQ_LISTEN" => {
             //
@@ -216,7 +213,7 @@ pub fn main() -> ExitCode {
             }
             info!("Sending RFQ Listen {:?}", rfq_subscribe_msg);
             println!("Sending RFQ Listen {:?}", rfq_subscribe_msg);
-            rfq_publish_fix(tls_arc.clone(), rfq_subscribe_msg);
+            rfq_publish_fix(tls_arc.clone(), rfq_subscribe_msg, Some(&config));
         }
         _ => {
             panic!("Error - no valid scenario defined to execute. Value provided was '{scenario}'");

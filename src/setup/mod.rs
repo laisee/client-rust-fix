@@ -5,3 +5,5 @@ pub mod setup_logging;
 pub mod setup_rfq;
 pub mod setup_session;
 pub mod setup_trading;
+
+// Remove the unused setup_logging function
