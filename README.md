@@ -5,7 +5,7 @@
 [![CI](https://github.com/laisee/client-rust-fix/actions/workflows/ci.yml/badge.svg)](https://github.com/laisee/client-rust-fix/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 [![Clippy](https://github.com/laisee/client-rust-fix/actions/workflows/clippy.yml/badge.svg?branch=main)](https://github.com/laisee/client-rust-fix/actions/workflows/clippy.yml)
-![MSRV](https://img.shields.io/badge/MSRV-1.80.0-orange)
+![MSRV](https://img.shields.io/badge/MSRV-1.86.0-orange)
 
 Rust client for power.trade Fix protocol.
 Implements authentication and basic order management(add single order, cancel single order).
@@ -32,23 +32,50 @@ Power.Trade API home page can be found [here](https://support.power.trade/api/ap
    
    See [https://forge.rust-lang.org/infra/other-installation-methods.html](here) for other installation methods.
 
-2. Check that Rustup has installed and configured **1.80** as the default version by typing the following command in a console/terminal window
+2. Check that Rustup has installed and configured **1.86** as the default version by typing the following command in a console/terminal window
   ```
   rustc --version
   ```
-    the version displayed should be: "rustc 1.80.0 (default)"
+    the version displayed should be: "rustc 1.86.0 (default)"
 3. Copy the sample env file (".env.example") to create a file for the Test environment
    ```
    cp .env.example .env.test
    ```
 4. Open the new `.env.test` file and update the settings for your Test API environment
-   
-5. Save the file and run the client on the Test environment(same process can be followed to create production env file '.env.prod')
+
+   Required environment variables include:
+
+   - `PT_API_KEY` - Power.Trade API key
+   - `PT_WS_API_KEY` - WebSocket API key
+   - `PT_WS_API_SECRET` - WebSocket API secret in PEM format
+   - `PT_SERVER` - FIX server hostname
+   - `PT_WS_SERVER` - WebSocket endpoint
+   - `PT_PEM_FILE` - path to your client PEM file
+   - `PT_PUBKEY_FILE` - path to your public certificate
+   - `PT_SCENARIO` - scenario to run (`ORDER`, `ORDERS`, `RFQ_QUOTE`, `RFQ_LISTEN`)
+   - `PT_LISTEN_EPOCH` - listen epoch value
+   - `PT_PUBLISH_EPOCH` - publish epoch value
+   - `PT_HEARTBEAT_COUNT` - number of heartbeats
+   - `PT_HEARTBEAT_INTERVAL` - seconds between heartbeats
+
+5. Build the project
+
+   ```
+   cargo build
+   ```
+
+6. Run tests to ensure everything is configured correctly
+
+   ```
+   cargo test
+   ```
+
+7. Save the file and run the client on the Test environment (same process can be followed to create production env file '.env.prod')
     
    n.b. Rust client runtime environment is set on command line as a parameter for the --env flag with value of 'development', 'test', 'production' 
    ```
    cargo run -- --env test
    ```
-6. Review console output and log files (see `app.log` in the same folder) to view client activity
+8. Review console output and log files (see `app.log` in the same folder) to view client activity
    
    
