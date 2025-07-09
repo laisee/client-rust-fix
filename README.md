@@ -1,5 +1,5 @@
 # **client-rust-fix**
-## Rust Client for trading on [https://power.trade](power.trade) crypto exchange
+## Rust Client for trading on [power.trade](https://power.trade) crypto exchange
 
 [![Rust](https://github.com/laisee/client-rust-fix/actions/workflows/rust.yml/badge.svg?branch=main)](https://github.com/laisee/client-rust-fix/actions/workflows/rust.yml)
 [![CI](https://github.com/laisee/client-rust-fix/actions/workflows/ci.yml/badge.svg)](https://github.com/laisee/client-rust-fix/actions/workflows/ci.yml)
@@ -8,29 +8,29 @@
 ![MSRV](https://img.shields.io/badge/MSRV-1.86.0-orange)
 
 Rust client for power.trade Fix protocol.
-Implements authentication and basic order management(add single order, cancel single order).
+Implements authentication and basic order management (add single order, cancel single order) and RFQ (Request For Quote) functionality.
 
 ## Features
 * Establishes a TLS FIX session and performs logon to the Power.Trade exchange.
 * Signs JWTs with your API keys to authenticate FIX connections.
-* Provides utilities for building FIX messages including NewOrderSingle and OrderCancelRequest.
-* Scenario driven main executable that can place or cancel orders or send RFQ messages based on environment variables.
+* Provides utilities for building FIX messages including NewOrderSingle, OrderCancelRequest, and RFQ messages.
+* Scenario-driven main executable that can place or cancel orders or send RFQ messages based on environment variables.
 * Integration test validates the structure of generated FIX messages without connecting to the exchange.
 
 See [list of issues](https://github.com/laisee/client-rust-fix/issues) for the planned set of enhancements and features.  
 
-See [here](https://power-trade.github.io/api-docs-source/fix_order_entry.html) for Power.Trade Single Leg Order Fix message specification(Fix MsgType='D')
+See [here](https://power-trade.github.io/api-docs-source/fix_order_entry.html) for Power.Trade Single Leg Order Fix message specification (Fix MsgType='D')
 
-See [here](https://power-trade.github.io/api-docs-source/fix_order_entry.html#_introduction) for Power.Trade Drop Copy Fix message specification(Fix MsgType='8')
+See [here](https://power-trade.github.io/api-docs-source/fix_order_entry.html#_introduction) for Power.Trade Drop Copy Fix message specification (Fix MsgType='8')
 
 Power.Trade API home page can be found [here](https://support.power.trade/api/api-overview)
 
 ## Getting Started
 1. Install Rust on device where client will be running. 
 
-   See [https://www.rust-lang.org/tools/install](here) for instructions on installation using Rustup.
+   See [Rust installation instructions](https://www.rust-lang.org/tools/install) for instructions on installation using Rustup.
    
-   See [https://forge.rust-lang.org/infra/other-installation-methods.html](here) for other installation methods.
+   See [alternative installation methods](https://forge.rust-lang.org/infra/other-installation-methods.html) for other installation methods.
 
 2. Check that Rustup has installed and configured **1.86** as the default version by typing the following command in a console/terminal window
   ```
@@ -53,10 +53,18 @@ Power.Trade API home page can be found [here](https://support.power.trade/api/ap
    - `PT_PEM_FILE` - path to your client PEM file
    - `PT_PUBKEY_FILE` - path to your public certificate
    - `PT_SCENARIO` - scenario to run (`ORDER`, `ORDERS`, `RFQ_QUOTE`, `RFQ_LISTEN`)
-   - `PT_LISTEN_EPOCH` - listen epoch value
-   - `PT_PUBLISH_EPOCH` - publish epoch value
-   - `PT_HEARTBEAT_COUNT` - number of heartbeats
+   - `PT_LISTEN_EPOCH` - number of epochs to listen for responses (for RFQ_LISTEN)
+   - `PT_PUBLISH_EPOCH` - number of epochs to listen after publishing (for RFQ_QUOTE)
+   - `PT_HEARTBEAT_COUNT` - number of heartbeats to send
    - `PT_HEARTBEAT_INTERVAL` - seconds between heartbeats
+   - `PT_SYMBOL` - trading symbol (e.g., "BTC-USD")
+   - `PT_PRICE` - order price
+   - `PT_QUANTITY` - order quantity
+   - `PT_SIDE` - order side ("BUY" or "SELL")
+   - `PT_ORDER_TYPE` - order type ("LIMIT" or "MARKET")
+   - `PT_CANCEL_ORDER` - whether to cancel the order after placing it ("true" or "false")
+   - `PT_LOG_FILE` - path to log file
+   - `PT_TARGET_COMP_ID` - target company ID for FIX messages
 
 5. Build the project
 
@@ -77,5 +85,41 @@ Power.Trade API home page can be found [here](https://support.power.trade/api/ap
    cargo run -- --env test
    ```
 8. Review console output and log files (see `app.log` in the same folder) to view client activity
-   
-   
+
+## Available Scenarios
+
+The client supports several scenarios that can be configured using the `PT_SCENARIO` environment variable:
+
+- `ORDER` - Send a single order based on the configured parameters
+- `ORDERS` - Send multiple orders (currently sends a single order, but can be extended)
+- `RFQ_QUOTE` - Send an RFQ quote request and listen for responses
+- `RFQ_LISTEN` - Subscribe to RFQ updates and listen for incoming quotes
+
+## Command Line Arguments
+
+The client supports the following command line arguments:
+
+- `--env <ENVIRONMENT>` - Set the runtime environment (development, test, production)
+
+Example:
+```
+cargo run -- --env test
+```
+
+## Logging
+
+The client logs information to both the console and a log file specified by the `PT_LOG_FILE` environment variable. The log file contains detailed information about the client's operation, including sent and received FIX messages.
+
+## Development
+
+To contribute to the project, please follow these steps:
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Run tests and linting: `cargo test && cargo clippy`
+5. Submit a pull request
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
