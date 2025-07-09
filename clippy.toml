@@ -6,15 +6,5 @@ allow = [
     "clippy::dead_code"
 ]
 
-# Optional: Set warning level for other lints (if not handled in CLI)
-warn = [
-    # Add other lints you want warnings for
-]
-
-# Optional: Set deny (error) level
-deny = [
-    "warnings"
-]
-
 # Set the maximum number of arguments for a function before it triggers the `too_many_arguments` lint
 too-many-arguments-threshold = 10
